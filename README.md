@@ -1,10 +1,9 @@
-<img src="./extra/repo.png">
+<img src="./extra/repo.png" alt="">
 
 # Monorepo
 
-- [ ] *Your Name Here*
-  - **(TODO: Change this heading to your name, because your github name is often not your real name)**
-- [ ] *[Phonetic spelling](https://dictionary.cambridge.org/us/help/phonetics.html) of your name here* **(TODO: Change this)**
+- [x] Jonathan Edelman (@edelmanjm)
+- [x] Phonetic spelling: /ˈdʒɑnəθən ˈɛdəlmən/
 
 ## Important Documents 
 

@@ -1,0 +1,6 @@
+function main(): void {
+
+
+}
+
+main();

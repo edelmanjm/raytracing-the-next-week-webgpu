@@ -2,7 +2,7 @@
 
 *TODO*: Please edit the following information in your assignment
 
-* Name: 
+* Name: Jonathan Edelman
 * How many hours did it take you to complete this assignment? 
 * Did you collaborate or share ideas with any other students/TAs/Professors? 
 * Did you use any external resources? 
