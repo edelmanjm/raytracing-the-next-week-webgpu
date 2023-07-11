@@ -17,8 +17,12 @@ module.exports = {
       },
     ],
   },
+  devtool: 'source-map',
   resolve: {
     extensions: ['.tsx', '.ts', '.js'],
+    fallback: {
+      fs: false,
+    },
   },
   output: {
     filename: 'main.js',
@@ -26,9 +30,7 @@ module.exports = {
   },
   plugins: [
     new CopyPlugin({
-      patterns: [
-        { from: 'part1/src/index.html', to: 'index.html', toType: 'file' },
-      ]
+      patterns: [{ from: 'part1/src/index.html', to: 'index.html', toType: 'file' }],
     }),
   ],
 };
