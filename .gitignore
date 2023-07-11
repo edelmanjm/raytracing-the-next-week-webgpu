@@ -12,6 +12,6 @@ yarn-error.log*
 .npm
 .eslintcache
 .vscode
-out/
+*/dist/
 
 art-sources/

@@ -1,9 +1,10 @@
 const path = require('path');
-
-const CopyPlugin = require('copy-webpack-plugin');
+const nodeExternals = require('webpack-node-externals');
+// const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
-  entry: './part1/src/main.ts',
+  entry: './part1/src/backend/main.ts',
+  target: 'node',
   module: {
     rules: [
       {
@@ -28,9 +29,5 @@ module.exports = {
     filename: 'main.js',
     path: path.resolve(__dirname, 'dist'),
   },
-  plugins: [
-    new CopyPlugin({
-      patterns: [{ from: 'part1/src/index.html', to: 'index.html', toType: 'file' }],
-    }),
-  ],
+  externals: [nodeExternals()],
 };

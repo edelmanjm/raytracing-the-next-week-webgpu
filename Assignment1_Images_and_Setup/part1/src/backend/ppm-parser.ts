@@ -1,8 +1,9 @@
 import * as assert from 'assert';
 import * as fs from 'fs';
+import { Canvas, createCanvas, createImageData } from 'canvas';
 
-export async function loadP3(path: string): Promise<HTMLCanvasElement> {
-  const data: string = await fetch(path).then(r => r.text());
+export async function loadP3(path: string): Promise<Canvas> {
+  const data: string = await fs.promises.readFile(path, 'utf-8');
 
   const lines: string[] = data.split('\n').filter(line => !line.startsWith('#'));
   // assert(lines[0] == 'P3');
@@ -10,9 +11,7 @@ export async function loadP3(path: string): Promise<HTMLCanvasElement> {
   const dims: number[] = lines[1].split(' ').map(s => parseInt(s));
   // assert(dims.length == 2);
 
-  const ret: HTMLCanvasElement = document.createElement('canvas');
-  ret.width = dims[0];
-  ret.height = dims[1];
+  const ret: Canvas = createCanvas(dims[0], dims[1]);
 
   const maxValue: number = parseInt(lines[2].trim());
   // Canvases only support 8-bit images
@@ -42,10 +41,10 @@ export async function loadP3(path: string): Promise<HTMLCanvasElement> {
 
   // Remove any extra data
   const trimmed = pixels_rgba.slice(0, Math.floor(pixels_rgba.length / 4) * 4);
-  ret.getContext('2d').putImageData(new ImageData(trimmed, ret.width, ret.height), 0, 0);
+  ret.getContext('2d').putImageData(createImageData(trimmed, ret.width, ret.height), 0, 0);
 
   return ret;
 }
-export function writeP3(path: string, image: ImageBitmap): void {}
+export function writeP3(path: string, image: Canvas): void {}
 
-export function writeP6(path: string, image: ImageBitmap): void {}
+export function writeP6(path: string, image: Canvas): void {}
