@@ -1,8 +1,8 @@
 import * as fs from 'fs';
-import { Canvas, createCanvas, createImageData } from 'canvas';
+import { Canvas, createCanvas, createImageData, Image, ImageData } from 'canvas';
 import assert from 'assert';
 
-export async function loadP3(path: string): Promise<Canvas> {
+export async function loadP3(path: string): Promise<ImageData> {
   const data: string = await fs.promises.readFile(path, 'utf-8');
 
   const items: string[] = data
@@ -13,8 +13,6 @@ export async function loadP3(path: string): Promise<Canvas> {
 
   const width = parseInt(items[1]);
   const height = parseInt(items[2]);
-
-  const ret: Canvas = createCanvas(width, height);
 
   const maxValue: number = parseInt(items[3]);
   // Canvases only support 8-bit images
@@ -44,19 +42,17 @@ export async function loadP3(path: string): Promise<Canvas> {
     index_rgba += 4;
   }
 
-  ret.getContext('2d').putImageData(createImageData(pixels_rgba, ret.width, ret.height), 0, 0);
-
-  return ret;
+  return createImageData(pixels_rgba, width, height);
 }
-export async function writeP3(path: string, canvas: Canvas): Promise<void> {
+export async function writeP3(path: string, image: ImageData): Promise<void> {
   let out: string[] = [];
 
   out.push('P3');
   out.push('# Encoded with TypeScript <3');
-  out.push(`${canvas.width} ${canvas.height}`);
+  out.push(`${image.width} ${image.height}`);
   out.push('255');
 
-  const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+  const data = image.data;
   assert(data.length % 4 == 0);
 
   out.push(
@@ -71,16 +67,16 @@ export async function writeP3(path: string, canvas: Canvas): Promise<void> {
   await fs.promises.writeFile(path, out.join('\n') + '\n', 'utf-8');
 }
 
-export async function writeP6(path: string, canvas: Canvas): Promise<void> {
+export async function writeP6(path: string, image: ImageData): Promise<void> {
   let header: string[] = [];
   header.push('P6');
   header.push('# Encoded with TypeScript <3');
-  header.push(`${canvas.width} ${canvas.height}`);
+  header.push(`${image.width} ${image.height}`);
   header.push('255');
 
   await fs.promises.writeFile(path, header.join('\n') + '\n', 'utf-8');
 
-  const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+  const data = image.data;
   assert(data.length % 4 == 0);
   let body: Uint8ClampedArray = data.filter((_, index) => {
     return (index + 1) % 4 != 0;
