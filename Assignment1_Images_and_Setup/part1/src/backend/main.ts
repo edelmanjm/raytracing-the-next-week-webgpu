@@ -1,10 +1,21 @@
 import { loadP3, writeP3, writeP6 } from './ppm-parser';
 import { Canvas, CanvasRenderingContext2D, createCanvas, createImageData, ImageData } from 'canvas';
+import { ArgumentParser } from 'argparse';
+import path from 'path';
 
 async function main(): Promise<void> {
-  const image: ImageData = await loadP3(
-    '../../common/textures/big_buck_bunny_blender3d_with_weird_formatting.ppm',
-  );
+  const parser: ArgumentParser = new ArgumentParser();
+  parser.add_argument('file', {
+    type: 'str',
+  });
+
+  let filePath: string = parser.parse_args().file;
+  if (!path.isAbsolute(filePath)) {
+    // Accounting for the fact that Node executes in dist/ but npm executes in the root directory
+    filePath = path.join('..', filePath);
+  }
+
+  const image: ImageData = await loadP3(filePath);
 
   const darkened: ImageData = transformPixels(image, p => p / 2);
   const lightened: ImageData = transformPixels(image, p => p * 2);

@@ -1,5 +1,5 @@
 # Run.md
 
-**Please edit this file with instructions about how to run your code**
-
-Ideally, your instructions will be relatively trivial for the language that you choose.
+1. Ensure you have Node.js 20 installed
+2. `cd` into `Assignment1_Images_and_Setup` (if you haven't already)
+3. `npm install && npm start <path_to_file>`
