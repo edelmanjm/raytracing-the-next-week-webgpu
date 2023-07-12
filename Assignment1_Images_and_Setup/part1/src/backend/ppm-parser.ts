@@ -1,29 +1,34 @@
-import * as assert from 'assert';
 import * as fs from 'fs';
 import { Canvas, createCanvas, createImageData } from 'canvas';
+import assert from 'assert';
 
 export async function loadP3(path: string): Promise<Canvas> {
   const data: string = await fs.promises.readFile(path, 'utf-8');
 
-  const lines: string[] = data.split('\n').filter(line => !line.startsWith('#'));
-  // assert(lines[0] == 'P3');
+  const items: string[] = data
+    .split('\n')
+    .filter(line => !line.startsWith('#'))
+    .flatMap(line => line.split(' '));
+  assert(items[0] == 'P3');
 
-  const dims: number[] = lines[1].split(' ').map(s => parseInt(s));
-  // assert(dims.length == 2);
+  const width = parseInt(items[1]);
+  const height = parseInt(items[2]);
 
-  const ret: Canvas = createCanvas(dims[0], dims[1]);
+  const ret: Canvas = createCanvas(width, height);
 
-  const maxValue: number = parseInt(lines[2].trim());
+  const maxValue: number = parseInt(items[3]);
   // Canvases only support 8-bit images
-  // assert(maxValue == 255);
+  assert(maxValue == 255);
 
   const pixels_rgb = new Uint8ClampedArray(
-    lines
-      .slice(3)
+    items
+      .slice(4)
       .flatMap(line => line.split(' '))
       .map(s => parseInt(s)),
   );
-  const pixels_rgba = new Uint8ClampedArray((pixels_rgb.length / 3) * 4);
+  const pixels_rgba = new Uint8ClampedArray(width * height * 4);
+  // Fill a default value
+  pixels_rgba.fill(0);
 
   // Need to transform to RGBA
   let index_rgb = 0;
@@ -39,12 +44,49 @@ export async function loadP3(path: string): Promise<Canvas> {
     index_rgba += 4;
   }
 
-  // Remove any extra data
-  const trimmed = pixels_rgba.slice(0, Math.floor(pixels_rgba.length / 4) * 4);
-  ret.getContext('2d').putImageData(createImageData(trimmed, ret.width, ret.height), 0, 0);
+  ret.getContext('2d').putImageData(createImageData(pixels_rgba, ret.width, ret.height), 0, 0);
 
   return ret;
 }
-export function writeP3(path: string, image: Canvas): void {}
+export async function writeP3(path: string, canvas: Canvas): Promise<void> {
+  let out: string[] = [];
 
-export function writeP6(path: string, image: Canvas): void {}
+  out.push('P3');
+  out.push('# Encoded with TypeScript <3');
+  out.push(`${canvas.width} ${canvas.height}`);
+  out.push('255');
+
+  const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+  assert(data.length % 4 == 0);
+
+  out.push(
+    data
+      .filter((_, index) => {
+        return (index + 1) % 4 != 0;
+      })
+      .join(' '),
+  );
+
+  // Preview.app seems to like a trailing newline
+  await fs.promises.writeFile(path, out.join('\n') + '\n', 'utf-8');
+}
+
+export async function writeP6(path: string, canvas: Canvas): Promise<void> {
+  let header: string[] = [];
+  header.push('P6');
+  header.push('# Encoded with TypeScript <3');
+  header.push(`${canvas.width} ${canvas.height}`);
+  header.push('255');
+
+  await fs.promises.writeFile(path, header.join('\n') + '\n', 'utf-8');
+
+  const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+  assert(data.length % 4 == 0);
+  let body: Uint8ClampedArray = data.filter((_, index) => {
+    return (index + 1) % 4 != 0;
+  });
+
+  await fs.promises.appendFile(path, Buffer.from(body));
+
+  await fs.promises.appendFile(path, '\n', 'utf-8');
+}
