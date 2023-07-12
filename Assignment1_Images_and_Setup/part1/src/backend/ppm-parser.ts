@@ -84,5 +84,6 @@ export async function writeP6(path: string, image: ImageData): Promise<void> {
 
   await fs.promises.appendFile(path, Buffer.from(body));
 
+  // Preview.app seems to like a trailing newline
   await fs.promises.appendFile(path, '\n', 'utf-8');
 }

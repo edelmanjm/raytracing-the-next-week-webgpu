@@ -1,17 +1,9 @@
 import { loadP3, writeP3, writeP6 } from './ppm-parser';
-import * as fs from 'fs';
-import {
-  Canvas,
-  CanvasRenderingContext2D,
-  createCanvas,
-  createImageData,
-  Image,
-  ImageData,
-} from 'canvas';
+import { Canvas, CanvasRenderingContext2D, createCanvas, createImageData, ImageData } from 'canvas';
 
 async function main(): Promise<void> {
   const image: ImageData = await loadP3(
-    '/Users/Jonathan/Projects/Current/monorepo-edelmanjm/common/textures/big_buck_bunny_blender3d_with_weird_formatting.ppm',
+    '../../common/textures/big_buck_bunny_blender3d_with_weird_formatting.ppm',
   );
 
   const darkened: ImageData = transformPixels(image, p => p / 2);
