@@ -13,10 +13,15 @@
     "outDir": "out", // put transpiled JS files in this folder
     "sourceMap": true, // generate source map for debugging (stepping through)
     "baseUrl": "./src", // this is the base URL for all relative paths that follow
+
+    // WebGPU
+    "typeRoots": [ "./node_modules/@webgpu/types", "./node_modules/@types"]
   },
   "include": [
     //include all files in this folder for transpiling
-    "part1/src/**/*"
+    "part1/src/**/*",
+    // WebGPU
+    "node_modules/@webgpu/types/**/*"
   ],
   "exclude": ["node_modules", "**/*.spec.ts"],
 }

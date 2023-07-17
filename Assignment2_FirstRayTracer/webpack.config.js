@@ -1,6 +1,6 @@
 const path = require('path');
-const nodeExternals = require('webpack-node-externals');
-// const CopyPlugin = require('copy-webpack-plugin');
+// const nodeExternals = require('webpack-node-externals');
+const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
   entry: './part1/src/main.ts',
@@ -25,7 +25,17 @@ module.exports = {
     },
   },
   output: {
-    filename: 'main.js',
+    filename: 'bundle.js',
     path: path.resolve(__dirname, 'dist'),
   },
+  devServer: {
+    static: path.join(__dirname, 'dist'),
+    compress: true,
+    port: 1234,
+  },
+  plugins: [
+    new CopyPlugin({
+      patterns: [{ from: 'part1/src/index.html', to: 'index.html', toType: 'file' }],
+    }),
+  ],
 };
