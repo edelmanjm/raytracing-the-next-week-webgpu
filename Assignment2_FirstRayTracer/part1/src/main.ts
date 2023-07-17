@@ -1,33 +1,41 @@
-import { writeP3 } from './ppm-parser';
+import Renderer from './renderer';
 
-async function main(): Promise<void> {
-  const canvas: HTMLCanvasElement = document.getElementById('canvas') as HTMLCanvasElement;
-  const ctx: CanvasRenderingContext2D | null = canvas.getContext('2d');
-  if (ctx == null) {
-    throw Error('lol idk');
+class App {
+  canvas: HTMLCanvasElement;
+  renderer: Renderer;
+  // FIXME
+  lastTimeStampMs: DOMHighResTimeStamp = 0;
+
+  elapsedTime = 0;
+
+  constructor(canvas: HTMLCanvasElement) {
+    canvas.width = canvas.height = 64 * 12;
+    this.canvas = canvas;
+    this.renderer = new Renderer(canvas);
   }
-  circle(canvas, ctx);
 
-  await Promise.all([
-    // fs.promises.writeFile('out.png', canvas.toBuffer('image/png')),
-    writeP3('circle.ppm', ctx.getImageData(0, 0, canvas.width, canvas.height)),
-  ]);
+  async run() {
+    await this.renderer.initializeAPI();
+
+    const updateLoop = (timeStampMs: DOMHighResTimeStamp) => {
+      // Compute delta time in seconds
+      const dt = (timeStampMs - this.lastTimeStampMs) / 1000;
+      this.lastTimeStampMs = timeStampMs;
+      this.render(dt);
+      requestAnimationFrame(updateLoop);
+    };
+
+    // Start the update loop
+    this.lastTimeStampMs = performance.now();
+    updateLoop(this.lastTimeStampMs);
+  }
+
+  render(dt: number) {
+    this.renderer.render(dt);
+  }
 }
 
-function circle(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D): void {
-  ctx.fillStyle = 'black';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+const canvas = document.getElementById('canvas') as HTMLCanvasElement;
+const app = new App(canvas);
 
-  ctx.beginPath();
-  ctx.arc(
-    canvas.width / 2,
-    canvas.height / 2,
-    Math.min(canvas.width, canvas.height) / 4,
-    0,
-    2 * Math.PI,
-  );
-  ctx.fillStyle = 'red';
-  ctx.fill();
-}
-
-main();
+app.run();
