@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "lib": ["es2015", "dom", "es5"],
+    "module": "commonjs",
+    "target": "es2022",
+
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node16",
+
+    "outDir": "out", // put transpiled JS files in this folder
+    "sourceMap": true, // generate source map for debugging (stepping through)
+    "baseUrl": "./src", // this is the base URL for all relative paths that follow
+  },
+  "include": [
+    //include all files in this folder for transpiling
+    "part1/src/**/*"
+  ],
+  "exclude": ["node_modules", "**/*.spec.ts"],
+}

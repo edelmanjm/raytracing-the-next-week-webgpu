@@ -1,0 +1,37 @@
+{
+  "name": "cs-4360",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.ts",
+  "type": "commonjs",
+  "scripts": {
+    "build": "webpack",
+    "watch": "webpack watch",
+    "serve": "http-server dist -p 1234",
+    "start": "npm run build && npm run serve"
+  },
+  "author": "Jonathan Edelman",
+  "license": "ISC",
+  "devDependencies": {
+    "npm-check-updates": "^16.10.15",
+
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@types/node": "^20.4.1",
+    "@types/argparse": "^2.0.10",
+    "typescript": "^5.1.6",
+
+    "eslint": "^8.44.0",
+    "lint-staged": "^13.2.3",
+    "prettier": "^3.0.0",
+    "eslint-config-prettier": "^8.8.0",
+    "prettier-plugin-organize-imports": "^3.2.2",
+
+    "ts-loader": "^9.4.4",
+    "webpack": "^5.88.1",
+    "webpack-cli": "^5.1.4",
+    "webpack-node-externals": "^3.0.0",
+
+    "argparse": "^2.0.1"
+  }
+}
