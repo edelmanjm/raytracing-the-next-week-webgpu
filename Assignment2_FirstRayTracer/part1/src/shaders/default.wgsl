@@ -25,29 +25,34 @@ fn length_squared(v: vec3<f32>) -> f32 {
 }
 // ----------------------------------------------------------------------------
 
-
 // ----------------------------------------------------------------------------
 // Main
 
 @group(0) @binding(0)
 var<storage, read_write> output : array<u32>;
 
-fn hit_sphere(center : vec3<f32>, radius: f32, r: ray) -> bool {
+fn hit_sphere(center : vec3<f32>, radius: f32, r: ray) -> f32 {
     let oc = r.origin - center;
-    let a = dot(r.direction, r.direction);
-    let b = 2.0 * dot(oc, r.direction);
-    let c = dot(oc, oc) - radius * radius;
-    let discriminant = b * b - 4 * a * c;
-    return (discriminant > 0);
+    let a = length_squared(r.direction);
+    let half_b = dot(oc, r.direction);
+    let c = length_squared(oc) - radius * radius;
+    let discriminant = half_b * half_b - a * c;
+    if (discriminant < 0) {
+        return -1;
+    } else {
+        return (-half_b - sqrt(discriminant)) / a;
+    }
 }
 
 fn ray_color(r : ray) -> color {
-    if (hit_sphere(vec3<f32>(0, 0, -1), 0.5, r)) {
-        return color(1, 0, 0);
+    var t = hit_sphere(vec3<f32>(0, 0, -1), 0.5, r);
+    if (t > 0.0) {
+        let n: vec3<f32> = normalize(ray_at(r, t) - vec3<f32>(0, 0, -1));
+        return 0.5 * color(n.x + 1, n.y + 1, n.z + 1);
     }
 
     let unit_direction = normalize(r.direction);
-    let t = 0.5 * (unit_direction.y + 1.0);
+    t = 0.5 * (unit_direction.y + 1.0);
     return (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
 }
 
