@@ -1,14 +1,15 @@
 // ----------------------------------------------------------------------------
-// Ray
+// Begin ray
 
 struct ray {
-    origin : vec3<f32>,
-    direction : vec3<f32>,
+    origin: vec3<f32>,
+    direction: vec3<f32>,
 }
 
 fn ray_at(r: ray, t: f32) -> vec3<f32> {
     return r.origin + t * r.direction;
 }
+// End ray
 // ----------------------------------------------------------------------------
 
 // ----------------------------------------------------------------------------
@@ -18,15 +19,16 @@ alias color = vec3<f32>;
 // ----------------------------------------------------------------------------
 
 // ----------------------------------------------------------------------------
-// Utility functions
+// Begin utility functions
 fn length_squared(v: vec3<f32>) -> f32 {
     let l = length(v);
     return l * l;
 }
+// End utility functions
 // ----------------------------------------------------------------------------
 
 // ----------------------------------------------------------------------------
-// Main
+// Begin main
 
 @group(0) @binding(0)
 var<storage, read_write> output : array<u32>;
@@ -91,7 +93,7 @@ fn main(
         const origin = vec3(0.0, 0.0, 0.0);
         const horizontal = vec3(viewport_width, 0.0, 0.0);
         const vertical = vec3(0.0, viewport_height, 0.0);
-        const lower_left_corner = origin - horizontal/2 - vertical/2 - vec3(0, 0, focal_length);
+        const lower_left_corner = origin - horizontal / 2 - vertical / 2 - vec3(0, 0, focal_length);
 
         // Render
         let u = x / image_width;
@@ -102,4 +104,5 @@ fn main(
         // Store color for current pixel
         output[offset] = color_to_u32(pixel_color);
 }
+// End main
 // ----------------------------------------------------------------------------

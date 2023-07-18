@@ -3,7 +3,6 @@ import Renderer from './renderer';
 class App {
   canvas: HTMLCanvasElement;
   renderer: Renderer;
-  // FIXME
   lastTimeStampMs: DOMHighResTimeStamp = 0;
 
   elapsedTime = 0;
