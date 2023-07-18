@@ -21,17 +21,13 @@ class App {
       // Compute delta time in seconds
       const dt = (timeStampMs - this.lastTimeStampMs) / 1000;
       this.lastTimeStampMs = timeStampMs;
-      this.render(dt);
+      this.renderer.render(dt);
       requestAnimationFrame(updateLoop);
     };
 
     // Start the update loop
     this.lastTimeStampMs = performance.now();
     updateLoop(this.lastTimeStampMs);
-  }
-
-  render(dt: number) {
-    this.renderer.render(dt);
   }
 }
 

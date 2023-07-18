@@ -1,45 +1,39 @@
-///////////////////////////////////////////////////////////////////////////////
+// ----------------------------------------------------------------------------
 // Ray
 
 struct ray {
-    orig : vec3<f32>,
-    dir : vec3<f32>,
+    origin : vec3<f32>,
+    direction : vec3<f32>,
 }
 
 fn ray_at(r: ray, t: f32) -> vec3<f32> {
-    return r.orig + t * r.dir;
+    return r.origin + t * r.direction;
 }
-///////////////////////////////////////////////////////////////////////////////
+// ----------------------------------------------------------------------------
 
-///////////////////////////////////////////////////////////////////////////////
+// ----------------------------------------------------------------------------
 // Color
 
 alias color = vec3<f32>;
-///////////////////////////////////////////////////////////////////////////////
+// ----------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------
+// Utility functions
+fn length_squared(v: vec3<f32>) -> f32 {
+    let l = length(v);
+    return l * l;
+}
+// ----------------------------------------------------------------------------
 
 
-///////////////////////////////////////////////////////////////////////////////
+// ----------------------------------------------------------------------------
 // Main
 
 @group(0) @binding(0)
 var<storage, read_write> output : array<u32>;
 
-
-fn hit_sphere(center: vec3<f32>, radius: f32, r: ray) -> bool {
-    let oc = r.orig - center;
-    let a = dot(r.dir, r.dir);
-    let b = 2.0 * dot(oc, r.dir);
-    let c = dot(oc, oc) - radius * radius;
-    let discriminant = b * b - 4 * a * c;
-    return discriminant > 0;
-}
-
 fn ray_color(r : ray) -> color {
-    if (hit_sphere(vec3(0.0, 0.0, -1.0), 0.5, r)) {
-        return color(1.0, 0.0, 0.0);
-    }
-
-    let unit_direction = normalize(r.dir);
+    let unit_direction = normalize(r.direction);
     let t = 0.5 * (unit_direction.y + 1.0);
     return (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
 }
@@ -84,10 +78,10 @@ fn main(
         // Render
         let u = x / image_width;
         let v = y / image_height;
-        let r = ray(origin, lower_left_corner + u*horizontal + v*vertical - origin);
+        let r = ray(origin, lower_left_corner + u * horizontal + v * vertical - origin);
         let pixel_color = ray_color(r);
 
         // Store color for current pixel
         output[offset] = color_to_u32(pixel_color);
 }
-///////////////////////////////////////////////////////////////////////////////
+// ----------------------------------------------------------------------------
