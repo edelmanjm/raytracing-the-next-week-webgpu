@@ -15,6 +15,10 @@ module.exports = {
         test: /\.css$/i,
         use: ['style-loader', 'css-loader'],
       },
+      {
+        test: /\.wgsl$/,
+        type: 'asset/source',
+      },
     ],
   },
   devtool: 'source-map',
