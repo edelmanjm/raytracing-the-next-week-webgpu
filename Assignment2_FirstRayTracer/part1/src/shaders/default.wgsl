@@ -28,34 +28,69 @@ fn length_squared(v: vec3<f32>) -> f32 {
 // ----------------------------------------------------------------------------
 
 // ----------------------------------------------------------------------------
+// Begin hittable objects
+struct hit_record {
+    p: vec3<f32>,
+    normal: vec3<f32>,
+    t: f32,
+}
+
+// No inheritance is available in WGSL
+
+struct sphere {
+    center: vec3<f32>,
+    radius: f32,
+}
+
+fn hit_sphere(s: sphere, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hit_record>) -> bool {
+    let oc = r.origin - s.center;
+    let a = length_squared(r.direction);
+    let half_b = dot(oc, r.direction);
+    let c = length_squared(oc) - s.radius * s.radius;
+
+    let discriminant = half_b * half_b - a * c;
+    if (discriminant < 0) {
+        return false;
+    }
+    let sqrtd = sqrt(discriminant);
+
+    // Find the nearest root that lies in the acceptable range.
+    var root = (-half_b - sqrtd) / a;
+    if (root <= ray_tmin || ray_tmax <= root) {
+        root = (-half_b + sqrtd) / a;
+        if (root <= ray_tmin || ray_tmax <= root) {
+            return false;
+        }
+    }
+
+    (*rec).t = root;
+    (*rec).p = ray_at(r, root);
+    (*rec).normal = ((*rec).p - s.center) / s.radius;
+
+    return true;
+}
+
+// End hittable objects
+// ----------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------
 // Begin main
 
 @group(0) @binding(0)
 var<storage, read_write> output : array<u32>;
 
-fn hit_sphere(center : vec3<f32>, radius: f32, r: ray) -> f32 {
-    let oc = r.origin - center;
-    let a = length_squared(r.direction);
-    let half_b = dot(oc, r.direction);
-    let c = length_squared(oc) - radius * radius;
-    let discriminant = half_b * half_b - a * c;
-    if (discriminant < 0) {
-        return -1;
-    } else {
-        return (-half_b - sqrt(discriminant)) / a;
-    }
-}
-
 fn ray_color(r : ray) -> color {
-    var t = hit_sphere(vec3<f32>(0, 0, -1), 0.5, r);
-    if (t > 0.0) {
-        let n: vec3<f32> = normalize(ray_at(r, t) - vec3<f32>(0, 0, -1));
+    var hit_record: hit_record;
+    var s = sphere(vec3<f32>(0, 0, -1), 0.5);
+    let hit = hit_sphere(s, r, 0, 100, &hit_record);
+    if (hit) {
+        let n: vec3<f32> = normalize(ray_at(r, hit_record.t) - vec3<f32>(0, 0, -1));
         return 0.5 * color(n.x + 1, n.y + 1, n.z + 1);
     }
 
     let unit_direction = normalize(r.direction);
-    t = 0.5 * (unit_direction.y + 1.0);
-    return (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
+    hit_record.t = 0.5 * (unit_direction.y + 1.0);
+    return (1.0 - hit_record.t) * color(1.0, 1.0, 1.0) + hit_record.t * color(0.5, 0.7, 1.0);
 }
 
 fn color_to_u32(c : color) -> u32 {
