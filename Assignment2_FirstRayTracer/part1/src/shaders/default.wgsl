@@ -33,6 +33,19 @@ struct hit_record {
     p: vec3<f32>,
     normal: vec3<f32>,
     t: f32,
+    front_face: bool
+}
+
+fn set_face_normal(record: ptr<function, hit_record>, r: ray, outward_normal: vec3<f32>) {
+    // Sets the hit record normal vector.
+    // NOTE: the parameter outward_normal is assumed to have unit length.
+
+    (*record).front_face = dot(r.direction, outward_normal) < 0;
+    if ((*record).front_face) {
+        (*record).normal = outward_normal;
+    } else {
+        (*record).normal = -outward_normal;
+    }
 }
 
 // No inheritance is available in WGSL
@@ -65,7 +78,8 @@ fn hit_sphere(s: sphere, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function
 
     (*rec).t = root;
     (*rec).p = ray_at(r, root);
-    (*rec).normal = ((*rec).p - s.center) / s.radius;
+    let outward_normal = ((*rec).p - s.center) / s.radius;
+    set_face_normal(rec, r, outward_normal);
 
     return true;
 }
