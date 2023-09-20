@@ -84,6 +84,33 @@ fn hit_sphere(s: sphere, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function
     return true;
 }
 
+const MAX_NUMBER_SPHERES = 10;
+struct hittables {
+    spheres: array<sphere, MAX_NUMBER_SPHERES>,
+    spheres_size: u32,
+}
+
+fn hittables_add_sphere(h: ptr<function, hittables>, s: sphere) {
+    (*h).spheres[(*h).spheres_size] = s;
+    (*h).spheres_size += 1;
+}
+
+fn hit_hittables(h: hittables, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hit_record>) -> bool {
+    var temp_rec: hit_record;
+    var hit_anything: bool = false;
+    var closest_so_far: f32 = ray_tmax;
+
+    for (var i: u32 = 0; i < h.spheres_size; i++) {
+        if (hit_sphere(h.spheres[i], r, ray_tmin, closest_so_far, &temp_rec)) {
+            hit_anything = true;
+            closest_so_far = temp_rec.t;
+            (*rec) = temp_rec;
+        }
+    }
+
+    return hit_anything;
+}
+
 // End hittable objects
 // ----------------------------------------------------------------------------
 
