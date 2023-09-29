@@ -85,23 +85,23 @@ fn hit_sphere(s: sphere, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function
 }
 
 const MAX_NUMBER_SPHERES = 10;
-struct hittables {
+struct hittable_list {
     spheres: array<sphere, MAX_NUMBER_SPHERES>,
     spheres_size: u32,
 }
 
-fn hittables_add_sphere(h: ptr<function, hittables>, s: sphere) {
-    (*h).spheres[(*h).spheres_size] = s;
-    (*h).spheres_size += 1;
+fn hittable_list_add_sphere(list: ptr<function, hittable_list>, s: sphere) {
+    (*list).spheres[(*list).spheres_size] = s;
+    (*list).spheres_size += 1;
 }
 
-fn hit_hittables(h: hittables, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hit_record>) -> bool {
+fn hit_hittable_list(list: ptr<function, hittable_list>, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hit_record>) -> bool {
     var temp_rec: hit_record;
     var hit_anything: bool = false;
     var closest_so_far: f32 = ray_tmax;
 
-    for (var i: u32 = 0; i < h.spheres_size; i++) {
-        if (hit_sphere(h.spheres[i], r, ray_tmin, closest_so_far, &temp_rec)) {
+    for (var i: u32 = 0; i < (*list).spheres_size; i++) {
+        if (hit_sphere((*list).spheres[i], r, ray_tmin, closest_so_far, &temp_rec)) {
             hit_anything = true;
             closest_so_far = temp_rec.t;
             (*rec) = temp_rec;
@@ -110,7 +110,6 @@ fn hit_hittables(h: hittables, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<fu
 
     return hit_anything;
 }
-
 // End hittable objects
 // ----------------------------------------------------------------------------
 
@@ -120,18 +119,17 @@ fn hit_hittables(h: hittables, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<fu
 @group(0) @binding(0)
 var<storage, read_write> output : array<u32>;
 
-fn ray_color(r : ray) -> color {
-    var hit_record: hit_record;
-    var s = sphere(vec3<f32>(0, 0, -1), 0.5);
-    let hit = hit_sphere(s, r, 0, 100, &hit_record);
-    if (hit) {
-        let n: vec3<f32> = normalize(ray_at(r, hit_record.t) - vec3<f32>(0, 0, -1));
-        return 0.5 * color(n.x + 1, n.y + 1, n.z + 1);
+const infinity = 3.402823466e+38;
+
+fn ray_color(r: ray, world: ptr<function, hittable_list>) -> color {
+    var rec: hit_record;
+    if (hit_hittable_list(world, r, 0, infinity, &rec)) {
+        return 0.5 * (rec.normal + color(1.0, 1.0 , 1.0));
     }
 
     let unit_direction = normalize(r.direction);
-    hit_record.t = 0.5 * (unit_direction.y + 1.0);
-    return (1.0 - hit_record.t) * color(1.0, 1.0, 1.0) + hit_record.t * color(0.5, 0.7, 1.0);
+    let t = 0.5 * (unit_direction.y + 1.0);
+    return (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
 }
 
 fn color_to_u32(c : color) -> u32 {
@@ -161,6 +159,12 @@ fn main(
         const image_width = ${width};
         const image_height = ${height};
 
+        // World
+
+        var world: hittable_list;
+        hittable_list_add_sphere(&world, sphere(vec3<f32>(0, 0, -1), 0.5));
+        hittable_list_add_sphere(&world, sphere(vec3<f32>(0, -100.5, -1), 100));
+
         // Camera
         const viewport_height = 2.0;
         const viewport_width = aspect_ratio * viewport_height;
@@ -175,7 +179,7 @@ fn main(
         let u = x / image_width;
         let v = y / image_height;
         let r = ray(origin, lower_left_corner + u * horizontal + v * vertical - origin);
-        let pixel_color = ray_color(r);
+        let pixel_color = ray_color(r, &world);
 
         // Store color for current pixel
         output[offset] = color_to_u32(pixel_color);
