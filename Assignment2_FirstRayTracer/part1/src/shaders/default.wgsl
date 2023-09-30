@@ -122,6 +122,7 @@ struct camera {
     horizontal: vec3<f32>,
     vertical: vec3<f32>,
     lower_left_corner: vec3<f32>,
+    samples_per_pixel: u32,
 }
 
 fn camera_initialize(cam: ptr<function, camera>) {
@@ -138,23 +139,47 @@ fn camera_initialize(cam: ptr<function, camera>) {
     (*cam).horizontal = vec3(viewport_width, 0.0, 0.0);
     (*cam).vertical = vec3(0.0, viewport_height, 0.0);
     (*cam).lower_left_corner = (*cam).origin - (*cam).horizontal / 2 - (*cam).vertical / 2 - vec3(0, 0, focal_length);
+
+    (*cam).samples_per_pixel = 10;
 }
 
-fn render(cam: ptr<function, camera>, world: ptr<function, hittable_list>, offset: u32) -> u32 {
+fn render(cam: ptr<function, camera>, world: ptr<function, hittable_list>, offset: u32) -> color {
     // Compute current x,y
     let x = f32(offset % (*cam).width);
     let y = f32((*cam).height) - f32(offset / (*cam).width); // Flip Y so Y+ is up
 
     // Render
-    let u = x / f32((*cam).width);
-    let v = y / f32((*cam).height);
-    let r = ray((*cam).origin, (*cam).lower_left_corner + u * (*cam).horizontal + v * (*cam).vertical - (*cam).origin);
-    let pixel_color = ray_color(r, world);
+    var pixel_color = color(0,0,0);
+    for (var sample: u32 = 0; sample < (*cam).samples_per_pixel; sample += 1) {
+        let u = (x + random_f32()) / f32((*cam).width - 1);
+        let v = (y + random_f32()) / f32((*cam).height - 1);
+        let r = ray((*cam).origin, (*cam).lower_left_corner + u * (*cam).horizontal + v * (*cam).vertical - (*cam).origin);
+        pixel_color += ray_color(r, world);
+    }
 
     // Store color for current pixel
-    return color_to_u32(pixel_color);
+    return pixel_color;
 }
 // End camera
+// ----------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------
+// Random from reference
+
+// Implementation copied from https://webgpu.github.io/webgpu-samples/samples/particles#./particle.wgsl
+var<private> rand_seed : vec2<f32>;
+
+fn init_rand(invocation_id : u32, seed : vec4<f32>) {
+  rand_seed = seed.xz;
+  rand_seed = fract(rand_seed * cos(35.456+f32(invocation_id) * seed.yw));
+  rand_seed = fract(rand_seed * cos(41.235+f32(invocation_id) * seed.xw));
+}
+
+fn random_f32() -> f32 {
+  rand_seed.x = fract(cos(dot(rand_seed, vec2<f32>(23.14077926, 232.61690225))) * 136.8168);
+  rand_seed.y = fract(cos(dot(rand_seed, vec2<f32>(54.47856553, 345.84153136))) * 534.7645);
+  return rand_seed.y;
+}
 // ----------------------------------------------------------------------------
 
 // ----------------------------------------------------------------------------
@@ -189,6 +214,13 @@ fn color_to_u32(c : color) -> u32 {
     // return (a << 24) | (b << 16) | (g << 8) | r;
 }
 
+fn write_color(offset: u32, pixel_color: color, samples_per_pixel: u32) {
+    var c = pixel_color;
+    // Divide the color by the number of samples.
+    c /= f32(samples_per_pixel);
+    output[offset] = color_to_u32(c);
+}
+
 @compute @workgroup_size(${wgSize})
 fn main(
     @builtin(global_invocation_id) global_invocation_id : vec3<u32>,
@@ -202,7 +234,7 @@ fn main(
         camera_initialize(&cam);
 
         let offset = global_invocation_id.x;
-        output[offset] = render(&cam, &world, offset);
+        write_color(offset, render(&cam, &world, offset), cam.samples_per_pixel);
 }
 // End main
 // ----------------------------------------------------------------------------
