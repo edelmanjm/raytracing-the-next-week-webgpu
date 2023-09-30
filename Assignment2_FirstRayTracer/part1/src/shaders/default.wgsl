@@ -114,6 +114,50 @@ fn hit_hittable_list(list: ptr<function, hittable_list>, r: ray, ray_tmin: f32, 
 // ----------------------------------------------------------------------------
 
 // ----------------------------------------------------------------------------
+// Begin camera
+struct camera {
+    width: u32,
+    height: u32,
+    origin: vec3<f32>,
+    horizontal: vec3<f32>,
+    vertical: vec3<f32>,
+    lower_left_corner: vec3<f32>,
+}
+
+fn camera_initialize(cam: ptr<function, camera>) {
+    (*cam).width = ${width};
+    (*cam).height = ${height};
+
+    const aspect_ratio: f32 = ${width} / ${height};
+
+    const viewport_height = 2.0;
+    let viewport_width = aspect_ratio * viewport_height;
+    const focal_length = 1.0;
+
+    (*cam).origin = vec3(0.0, 0.0, 0.0);
+    (*cam).horizontal = vec3(viewport_width, 0.0, 0.0);
+    (*cam).vertical = vec3(0.0, viewport_height, 0.0);
+    (*cam).lower_left_corner = (*cam).origin - (*cam).horizontal / 2 - (*cam).vertical / 2 - vec3(0, 0, focal_length);
+}
+
+fn render(cam: ptr<function, camera>, world: ptr<function, hittable_list>, offset: u32) -> u32 {
+    // Compute current x,y
+    let x = f32(offset % (*cam).width);
+    let y = f32((*cam).height) - f32(offset / (*cam).width); // Flip Y so Y+ is up
+
+    // Render
+    let u = x / f32((*cam).width);
+    let v = y / f32((*cam).height);
+    let r = ray((*cam).origin, (*cam).lower_left_corner + u * (*cam).horizontal + v * (*cam).vertical - (*cam).origin);
+    let pixel_color = ray_color(r, world);
+
+    // Store color for current pixel
+    return color_to_u32(pixel_color);
+}
+// End camera
+// ----------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------
 // Begin main
 
 @group(0) @binding(0)
@@ -149,40 +193,16 @@ fn color_to_u32(c : color) -> u32 {
 fn main(
     @builtin(global_invocation_id) global_invocation_id : vec3<u32>,
     ) {
-        // Compute current x,y
-        let offset = global_invocation_id.x;
-        let x = f32(offset % ${width});
-        let y = ${height} - f32(offset / ${width}); // Flip Y so Y+ is up
-
-        // Image
-        const aspect_ratio = ${width} / ${height};
-        const image_width = ${width};
-        const image_height = ${height};
-
         // World
-
         var world: hittable_list;
         hittable_list_add_sphere(&world, sphere(vec3<f32>(0, 0, -1), 0.5));
         hittable_list_add_sphere(&world, sphere(vec3<f32>(0, -100.5, -1), 100));
 
-        // Camera
-        const viewport_height = 2.0;
-        const viewport_width = aspect_ratio * viewport_height;
-        const focal_length = 1.0;
+        var cam: camera;
+        camera_initialize(&cam);
 
-        const origin = vec3(0.0, 0.0, 0.0);
-        const horizontal = vec3(viewport_width, 0.0, 0.0);
-        const vertical = vec3(0.0, viewport_height, 0.0);
-        const lower_left_corner = origin - horizontal / 2 - vertical / 2 - vec3(0, 0, focal_length);
-
-        // Render
-        let u = x / image_width;
-        let v = y / image_height;
-        let r = ray(origin, lower_left_corner + u * horizontal + v * vertical - origin);
-        let pixel_color = ray_color(r, &world);
-
-        // Store color for current pixel
-        output[offset] = color_to_u32(pixel_color);
+        let offset = global_invocation_id.x;
+        output[offset] = render(&cam, &world, offset);
 }
 // End main
 // ----------------------------------------------------------------------------
