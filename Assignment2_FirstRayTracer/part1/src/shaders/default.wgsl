@@ -164,7 +164,7 @@ fn render(cam: ptr<function, camera>, world: ptr<function, hittable_list>, offse
 // ----------------------------------------------------------------------------
 
 // ----------------------------------------------------------------------------
-// Random from reference
+// Random
 
 // Implementation copied from https://webgpu.github.io/webgpu-samples/samples/particles#./particle.wgsl
 var<private> rand_seed : vec2<f32>;
@@ -180,6 +180,41 @@ fn random_f32() -> f32 {
   rand_seed.y = fract(cos(dot(rand_seed, vec2<f32>(54.47856553, 345.84153136))) * 534.7645);
   return rand_seed.y;
 }
+
+fn random_range_f32(min: f32, max: f32) -> f32 {
+    return mix(min, max, random_f32());
+}
+
+fn random_vec3f() -> vec3<f32> {
+    return vec3(random_f32(), random_f32(), random_f32());
+}
+
+fn random_range_vec3f(min: f32, max: f32) -> vec3<f32> {
+    return vec3(random_range_f32(min, max), random_range_f32(min, max), random_range_f32(min, max));
+}
+
+fn random_in_unit_sphere() -> vec3<f32> {
+    loop {
+        let p = random_range_vec3f(-1, 1);
+        if (length_squared(p) < 1) {
+            return p;
+        }
+    }
+}
+
+fn random_unit_vector() -> vec3<f32> {
+    return normalize(random_in_unit_sphere());
+}
+
+fn random_on_hemisphere(normal: vec3<f32>) -> vec3<f32> {
+    let on_unit_sphere = random_unit_vector();
+    if (dot(on_unit_sphere, normal) > 0.0) { // In the same hemisphere as the normal
+        return on_unit_sphere;
+    } else {
+        return -on_unit_sphere;
+    }
+}
+
 // ----------------------------------------------------------------------------
 
 // ----------------------------------------------------------------------------
@@ -192,13 +227,19 @@ const infinity = 3.402823466e+38;
 
 fn ray_color(r: ray, world: ptr<function, hittable_list>) -> color {
     var rec: hit_record;
-    if (hit_hittable_list(world, r, 0, infinity, &rec)) {
-        return 0.5 * (rec.normal + color(1.0, 1.0 , 1.0));
+    var current_ray: ray = r;
+    var c: color = color(1.0, 1.0, 1.0);
+
+    // No recusion available
+    while (hit_hittable_list(world, current_ray, 0, infinity, &rec)) {
+        let direction = random_on_hemisphere(rec.normal);
+        current_ray = ray(rec.p, direction);
+        c = 0.5 * c;
     }
 
     let unit_direction = normalize(r.direction);
     let t = 0.5 * (unit_direction.y + 1.0);
-    return (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
+    return (1.0 - t) * c + t * color(0.5, 0.7, 1.0);
 }
 
 fn color_to_u32(c : color) -> u32 {
