@@ -157,7 +157,8 @@ fn render(cam: ptr<function, camera>, world: ptr<function, hittable_list>, offse
         pixel_color += ray_color(r, world);
     }
 
-    // Store color for current pixel
+    // Divide the color by the number of samples.
+    pixel_color /= f32((*cam).samples_per_pixel);
     return pixel_color;
 }
 // End camera
@@ -235,8 +236,8 @@ fn ray_color(r: ray, world: ptr<function, hittable_list>) -> color {
     // No recusion available
     for (var depth = 0; depth < max_depth; depth += 1) {
         if (hit_hittable_list(world, current_ray, 0.001, infinity, &rec)) {
-            let direction = rec.normal + random_unit_vector();
-            current_ray = ray(rec.p, direction);
+            let direction = rec.p + rec.normal + random_unit_vector();
+            current_ray = ray(rec.p, direction - rec.p);
             bounces += 1;
         } else {
             // Sky
@@ -264,9 +265,9 @@ fn color_to_u32(c : color) -> u32 {
 }
 
 fn write_color(offset: u32, pixel_color: color, samples_per_pixel: u32) {
-    var c = pixel_color;
-    // Divide the color by the number of samples.
-    c /= f32(samples_per_pixel);
+    // Gamma correction
+    var c = sqrt(pixel_color);
+
     output[offset] = color_to_u32(c);
 }
 
@@ -285,7 +286,10 @@ fn main(
         camera_initialize(&cam);
 
         let offset = global_invocation_id.x;
-        write_color(offset, render(&cam, &world, offset), cam.samples_per_pixel);
+
+        var c: color = render(&cam, &world, offset);
+
+        write_color(offset, c, cam.samples_per_pixel);
 }
 // End main
 // ----------------------------------------------------------------------------
