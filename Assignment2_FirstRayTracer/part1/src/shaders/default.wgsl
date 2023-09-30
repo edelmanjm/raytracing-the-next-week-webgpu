@@ -24,7 +24,67 @@ fn length_squared(v: vec3<f32>) -> f32 {
     let l = length(v);
     return l * l;
 }
+
+fn near_zero(v: vec3<f32>) -> bool {
+    // Return true if the vector is close to zero in all dimensions.
+    const s = 1e-8;
+    return length(v) < s;
+}
+
 // End utility functions
+// ----------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------
+// Random
+
+// Implementation copied from https://webgpu.github.io/webgpu-samples/samples/particles#./particle.wgsl
+var<private> rand_seed : vec2<f32>;
+
+fn init_rand(invocation_id : u32, seed : vec4<f32>) {
+  rand_seed = seed.xz;
+  rand_seed = fract(rand_seed * cos(35.456+f32(invocation_id) * seed.yw));
+  rand_seed = fract(rand_seed * cos(41.235+f32(invocation_id) * seed.xw));
+}
+
+fn random_f32() -> f32 {
+  rand_seed.x = fract(cos(dot(rand_seed, vec2<f32>(23.14077926, 232.61690225))) * 136.8168);
+  rand_seed.y = fract(cos(dot(rand_seed, vec2<f32>(54.47856553, 345.84153136))) * 534.7645);
+  return rand_seed.y;
+}
+
+fn random_range_f32(min: f32, max: f32) -> f32 {
+    return mix(min, max, random_f32());
+}
+
+fn random_vec3f() -> vec3<f32> {
+    return vec3(random_f32(), random_f32(), random_f32());
+}
+
+fn random_range_vec3f(min: f32, max: f32) -> vec3<f32> {
+    return vec3(random_range_f32(min, max), random_range_f32(min, max), random_range_f32(min, max));
+}
+
+fn random_in_unit_sphere() -> vec3<f32> {
+    loop {
+        let p = random_range_vec3f(-1, 1);
+        if (length_squared(p) < 1) {
+            return p;
+        }
+    }
+}
+
+fn random_unit_vector() -> vec3<f32> {
+    return normalize(random_in_unit_sphere());
+}
+
+fn random_on_hemisphere(normal: vec3<f32>) -> vec3<f32> {
+    let on_unit_sphere = random_unit_vector();
+    if (dot(on_unit_sphere, normal) > 0.0) { // In the same hemisphere as the normal
+        return on_unit_sphere;
+    } else {
+        return -on_unit_sphere;
+    }
+}
 // ----------------------------------------------------------------------------
 
 // ----------------------------------------------------------------------------
@@ -48,6 +108,22 @@ struct material {
     metal: material_metal,
 }
 
+fn material_bounce(mat: material, r_in: ray, rec: hit_record, attenuation: ptr<function, color>, scattered: ptr<function, ray>) -> bool {
+    if (mat.ty == MATERIAL_TYPE_LAMBERTIAN) {
+        var scatter_direction = rec.normal + random_unit_vector();
+
+        if (near_zero(scatter_direction)) {
+            scatter_direction = rec.normal;
+        }
+
+        (*scattered) = ray(rec.p, scatter_direction);
+        (*attenuation) = mat.lambertian.albedo;
+        return true;
+    } else {
+        // TODO
+        return false;
+    }
+}
 // End Materials
 // ----------------------------------------------------------------------------
 
@@ -189,60 +265,6 @@ fn render(cam: ptr<function, camera>, world: ptr<function, hittable_list>, offse
     return pixel_color;
 }
 // End camera
-// ----------------------------------------------------------------------------
-
-// ----------------------------------------------------------------------------
-// Random
-
-// Implementation copied from https://webgpu.github.io/webgpu-samples/samples/particles#./particle.wgsl
-var<private> rand_seed : vec2<f32>;
-
-fn init_rand(invocation_id : u32, seed : vec4<f32>) {
-  rand_seed = seed.xz;
-  rand_seed = fract(rand_seed * cos(35.456+f32(invocation_id) * seed.yw));
-  rand_seed = fract(rand_seed * cos(41.235+f32(invocation_id) * seed.xw));
-}
-
-fn random_f32() -> f32 {
-  rand_seed.x = fract(cos(dot(rand_seed, vec2<f32>(23.14077926, 232.61690225))) * 136.8168);
-  rand_seed.y = fract(cos(dot(rand_seed, vec2<f32>(54.47856553, 345.84153136))) * 534.7645);
-  return rand_seed.y;
-}
-
-fn random_range_f32(min: f32, max: f32) -> f32 {
-    return mix(min, max, random_f32());
-}
-
-fn random_vec3f() -> vec3<f32> {
-    return vec3(random_f32(), random_f32(), random_f32());
-}
-
-fn random_range_vec3f(min: f32, max: f32) -> vec3<f32> {
-    return vec3(random_range_f32(min, max), random_range_f32(min, max), random_range_f32(min, max));
-}
-
-fn random_in_unit_sphere() -> vec3<f32> {
-    loop {
-        let p = random_range_vec3f(-1, 1);
-        if (length_squared(p) < 1) {
-            return p;
-        }
-    }
-}
-
-fn random_unit_vector() -> vec3<f32> {
-    return normalize(random_in_unit_sphere());
-}
-
-fn random_on_hemisphere(normal: vec3<f32>) -> vec3<f32> {
-    let on_unit_sphere = random_unit_vector();
-    if (dot(on_unit_sphere, normal) > 0.0) { // In the same hemisphere as the normal
-        return on_unit_sphere;
-    } else {
-        return -on_unit_sphere;
-    }
-}
-
 // ----------------------------------------------------------------------------
 
 // ----------------------------------------------------------------------------
