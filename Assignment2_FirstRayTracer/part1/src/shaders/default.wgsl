@@ -235,7 +235,7 @@ fn ray_color(r: ray, world: ptr<function, hittable_list>) -> color {
     // No recusion available
     for (var depth = 0; depth < max_depth; depth += 1) {
         if (hit_hittable_list(world, current_ray, 0.001, infinity, &rec)) {
-            let direction = random_on_hemisphere(rec.normal);
+            let direction = rec.normal + random_unit_vector();
             current_ray = ray(rec.p, direction);
             bounces += 1;
         } else {
