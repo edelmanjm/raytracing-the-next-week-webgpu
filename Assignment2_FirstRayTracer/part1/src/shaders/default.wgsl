@@ -228,18 +228,26 @@ const infinity = 3.402823466e+38;
 fn ray_color(r: ray, world: ptr<function, hittable_list>) -> color {
     var rec: hit_record;
     var current_ray: ray = r;
-    var c: color = color(1.0, 1.0, 1.0);
+    var max_depth = 10;
+    var c: color = color(0.0, 0.0, 0.0);
+    var bounces = 1;
 
     // No recusion available
-    while (hit_hittable_list(world, current_ray, 0, infinity, &rec)) {
-        let direction = random_on_hemisphere(rec.normal);
-        current_ray = ray(rec.p, direction);
-        c = 0.5 * c;
+    for (var depth = 0; depth < max_depth; depth += 1) {
+        if (hit_hittable_list(world, current_ray, 0, infinity, &rec)) {
+            let direction = random_on_hemisphere(rec.normal);
+            current_ray = ray(rec.p, direction);
+            bounces += 1;
+        } else {
+            // Sky
+            let unit_direction = normalize(r.direction);
+            let t = 0.5 * (unit_direction.y + 1.0);
+            c = (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
+            break;
+        }
     }
 
-    let unit_direction = normalize(r.direction);
-    let t = 0.5 * (unit_direction.y + 1.0);
-    return (1.0 - t) * c + t * color(0.5, 0.7, 1.0);
+    return c / f32(bounces);
 }
 
 fn color_to_u32(c : color) -> u32 {
