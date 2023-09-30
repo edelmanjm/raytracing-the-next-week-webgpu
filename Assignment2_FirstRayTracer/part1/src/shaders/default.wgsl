@@ -234,7 +234,7 @@ fn ray_color(r: ray, world: ptr<function, hittable_list>) -> color {
 
     // No recusion available
     for (var depth = 0; depth < max_depth; depth += 1) {
-        if (hit_hittable_list(world, current_ray, 0, infinity, &rec)) {
+        if (hit_hittable_list(world, current_ray, 0.001, infinity, &rec)) {
             let direction = random_on_hemisphere(rec.normal);
             current_ray = ray(rec.p, direction);
             bounces += 1;
@@ -274,6 +274,8 @@ fn write_color(offset: u32, pixel_color: color, samples_per_pixel: u32) {
 fn main(
     @builtin(global_invocation_id) global_invocation_id : vec3<u32>,
     ) {
+        init_rand(global_invocation_id.x, vec4(vec3<f32>(global_invocation_id), 1.0));
+
         // World
         var world: hittable_list;
         hittable_list_add_sphere(&world, sphere(vec3<f32>(0, 0, -1), 0.5));
