@@ -28,10 +28,35 @@ fn length_squared(v: vec3<f32>) -> f32 {
 // ----------------------------------------------------------------------------
 
 // ----------------------------------------------------------------------------
+// Begin materials
+
+alias material_type = u32;
+const MATERIAL_TYPE_LAMBERTIAN : material_type = 0;
+const MATERIAL_TYPE_METAL : material_type = 1;
+
+struct material_lambertian {
+    albedo: color,
+}
+
+struct material_metal {
+    albedo: color,
+}
+
+struct material {
+    ty: material_type,
+    lambertian: material_lambertian,
+    metal: material_metal,
+}
+
+// End Materials
+// ----------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------
 // Begin hittable objects
 struct hit_record {
     p: vec3<f32>,
     normal: vec3<f32>,
+    mat: material,
     t: f32,
     front_face: bool
 }
@@ -53,6 +78,7 @@ fn set_face_normal(record: ptr<function, hit_record>, r: ray, outward_normal: ve
 struct sphere {
     center: vec3<f32>,
     radius: f32,
+    mat: material,
 }
 
 fn hit_sphere(s: sphere, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hit_record>) -> bool {
@@ -80,6 +106,7 @@ fn hit_sphere(s: sphere, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function
     (*rec).p = ray_at(r, root);
     let outward_normal = ((*rec).p - s.center) / s.radius;
     set_face_normal(rec, r, outward_normal);
+    (*rec).mat = s.mat;
 
     return true;
 }
@@ -277,10 +304,14 @@ fn main(
     ) {
         init_rand(global_invocation_id.x, vec4(vec3<f32>(global_invocation_id), 1.0));
 
+        var material_lambertian_grey: material;
+        material_lambertian_grey.ty = MATERIAL_TYPE_LAMBERTIAN;
+        material_lambertian_grey.lambertian.albedo = color(0.9, 0.9, 0.9);
+
         // World
         var world: hittable_list;
-        hittable_list_add_sphere(&world, sphere(vec3<f32>(0, 0, -1), 0.5));
-        hittable_list_add_sphere(&world, sphere(vec3<f32>(0, -100.5, -1), 100));
+        hittable_list_add_sphere(&world, sphere(vec3<f32>(0, 0, -1), 0.5, material_lambertian_grey));
+        hittable_list_add_sphere(&world, sphere(vec3<f32>(0, -100.5, -1), 100, material_lambertian_grey));
 
         var cam: camera;
         camera_initialize(&cam);
