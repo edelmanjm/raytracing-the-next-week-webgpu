@@ -2,12 +2,12 @@
 // Begin ray
 
 struct ray {
-    origin: vec3<f32>,
-    direction: vec3<f32>,
+    origin: vec3f,
+    direction: vec3f,
     strength: f32
 }
 
-fn ray_at(r: ray, t: f32) -> vec3<f32> {
+fn ray_at(r: ray, t: f32) -> vec3f {
     return r.origin + t * r.direction;
 }
 // End ray
@@ -16,27 +16,27 @@ fn ray_at(r: ray, t: f32) -> vec3<f32> {
 // ----------------------------------------------------------------------------
 // Color
 
-alias color = vec3<f32>;
+alias color = vec3f;
 // ----------------------------------------------------------------------------
 
 // ----------------------------------------------------------------------------
 // Begin utility functions
-fn length_squared(v: vec3<f32>) -> f32 {
+fn length_squared(v: vec3f) -> f32 {
     let l = length(v);
     return l * l;
 }
 
-fn near_zero(v: vec3<f32>) -> bool {
+fn near_zero(v: vec3f) -> bool {
     // Return true if the vector is close to zero in all dimensions.
     const s = 1e-8;
     return length(v) < s;
 }
 
-fn reflect(v: vec3<f32>, n: vec3<f32>) -> vec3<f32> {
+fn reflect(v: vec3f, n: vec3f) -> vec3f {
     return v - 2 * dot(v, n) * n;
 }
 
-fn refract(uv: vec3<f32>, n: vec3<f32>, etai_over_etat: f32) -> vec3<f32> {
+fn refract(uv: vec3f, n: vec3f, etai_over_etat: f32) -> vec3f {
     let cos_theta = min(dot(-uv, n), 1.0);
     let r_out_perp =  etai_over_etat * (uv + cos_theta*n);
     let r_out_parallel = -sqrt(abs(1.0 - length_squared(r_out_perp))) * n;
@@ -68,15 +68,15 @@ fn random_range_f32(min: f32, max: f32) -> f32 {
     return mix(min, max, random_f32());
 }
 
-fn random_vec3f() -> vec3<f32> {
+fn random_vec3f() -> vec3f {
     return vec3(random_f32(), random_f32(), random_f32());
 }
 
-fn random_range_vec3f(min: f32, max: f32) -> vec3<f32> {
+fn random_range_vec3f(min: f32, max: f32) -> vec3f {
     return vec3(random_range_f32(min, max), random_range_f32(min, max), random_range_f32(min, max));
 }
 
-fn random_in_unit_sphere() -> vec3<f32> {
+fn random_in_unit_sphere() -> vec3f {
     loop {
         let p = random_range_vec3f(-1, 1);
         if (length_squared(p) < 1) {
@@ -85,11 +85,11 @@ fn random_in_unit_sphere() -> vec3<f32> {
     }
 }
 
-fn random_unit_vector() -> vec3<f32> {
+fn random_unit_vector() -> vec3f {
     return normalize(random_in_unit_sphere());
 }
 
-fn random_on_hemisphere(normal: vec3<f32>) -> vec3<f32> {
+fn random_on_hemisphere(normal: vec3f) -> vec3f {
     let on_unit_sphere = random_unit_vector();
     if (dot(on_unit_sphere, normal) > 0.0) { // In the same hemisphere as the normal
         return on_unit_sphere;
@@ -150,7 +150,7 @@ fn scatter(mat: material, r_in: ray, rec: hit_record, attenuation: ptr<function,
             return true;
         }
         case MATERIAL_TYPE_METAL {
-            let reflected: vec3<f32> = reflect(normalize(r_in.direction), rec.normal);
+            let reflected: vec3f = reflect(normalize(r_in.direction), rec.normal);
             (*scattered) = ray(rec.p,
                                reflected + mat.metal.fuzz * random_unit_vector(),
                                r_in.strength * (1.0 - mat.absorption));
@@ -171,7 +171,7 @@ fn scatter(mat: material, r_in: ray, rec: hit_record, attenuation: ptr<function,
             let sin_theta = sqrt(1.0 - cos_theta*cos_theta);
 
             let cannot_refract = refraction_ratio * sin_theta > 1.0;
-            var direction: vec3<f32>;
+            var direction: vec3f;
             if (cannot_refract || reflectance(cos_theta, refraction_ratio) > random_f32()) {
                 direction = reflect(unit_direction, rec.normal);
             } else {
@@ -192,14 +192,14 @@ fn scatter(mat: material, r_in: ray, rec: hit_record, attenuation: ptr<function,
 // ----------------------------------------------------------------------------
 // Begin hittable objects
 struct hit_record {
-    p: vec3<f32>,
-    normal: vec3<f32>,
+    p: vec3f,
+    normal: vec3f,
     mat: material,
     t: f32,
     front_face: bool
 }
 
-fn set_face_normal(record: ptr<function, hit_record>, r: ray, outward_normal: vec3<f32>) {
+fn set_face_normal(record: ptr<function, hit_record>, r: ray, outward_normal: vec3f) {
     // Sets the hit record normal vector.
     // NOTE: the parameter outward_normal is assumed to have unit length.
 
@@ -214,7 +214,7 @@ fn set_face_normal(record: ptr<function, hit_record>, r: ray, outward_normal: ve
 // No inheritance is available in WGSL
 
 struct sphere {
-    center: vec3<f32>,
+    center: vec3f,
     radius: f32,
     mat: material,
 }
@@ -283,19 +283,19 @@ fn hit_hittable_list(list: ptr<function, hittable_list>, r: ray, ray_tmin: f32, 
 struct camera {
     width: u32,
     height: u32,
-    origin: vec3<f32>,
-    lower_left_corner: vec3<f32>,
+    origin: vec3f,
+    lower_left_corner: vec3f,
     samples_per_pixel: u32,
 
-    u: vec3<f32>,
-    v: vec3<f32>,
-    w: vec3<f32>, // Camera frame basis vectors
+    u: vec3f,
+    v: vec3f,
+    w: vec3f, // Camera frame basis vectors
 
-    viewport_u: vec3<f32>,
-    viewport_v: vec3<f32>,
+    viewport_u: vec3f,
+    viewport_v: vec3f,
 }
 
-fn camera_initialize(cam: ptr<function, camera>, vfov: f32, lookfrom: vec3<f32>, lookat: vec3<f32>, vup: vec3<f32>) {
+fn camera_initialize(cam: ptr<function, camera>, vfov: f32, lookfrom: vec3f, lookat: vec3f, vup: vec3f) {
     (*cam).width = ${width};
     (*cam).height = ${height};
     (*cam).origin = lookfrom;
@@ -404,7 +404,7 @@ fn write_color(offset: u32, pixel_color: color, samples_per_pixel: u32) {
 fn main(
     @builtin(global_invocation_id) global_invocation_id : vec3<u32>,
     ) {
-        init_rand(global_invocation_id.x, vec4(vec3<f32>(global_invocation_id), 1.0));
+        init_rand(global_invocation_id.x, vec4(vec3f(global_invocation_id), 1.0));
 
         // Materials Requirement
         var material_lambertian_green: material;
@@ -438,11 +438,11 @@ fn main(
         // World
         // Sphere Requirement
         var world: hittable_list;
-        hittable_list_add_sphere(&world, sphere(vec3<f32>(0.0, 0.0, -1.0), 0.5, material_lambertian_green));
-        hittable_list_add_sphere(&world, sphere(vec3<f32>(0.0, -100.5, -1.0), 100, material_lambertian_red));
-        hittable_list_add_sphere(&world, sphere(vec3<f32>(-1.0, 0.0, -1.0), 0.5, material_dielectric));
-        hittable_list_add_sphere(&world, sphere(vec3<f32>(1.0, 0.0, -1.0), 0.5, material_metal_bluegrey_rough));
-        hittable_list_add_sphere(&world, sphere(vec3<f32>(0.0, 1.0, -2.0), 1.0, material_metal_bluegrey_glossy));
+        hittable_list_add_sphere(&world, sphere(vec3f(0.0, 0.0, -1.0), 0.5, material_lambertian_green));
+        hittable_list_add_sphere(&world, sphere(vec3f(0.0, -100.5, -1.0), 100, material_lambertian_red));
+        hittable_list_add_sphere(&world, sphere(vec3f(-1.0, 0.0, -1.0), 0.5, material_dielectric));
+        hittable_list_add_sphere(&world, sphere(vec3f(1.0, 0.0, -1.0), 0.5, material_metal_bluegrey_rough));
+        hittable_list_add_sphere(&world, sphere(vec3f(0.0, 1.0, -2.0), 1.0, material_metal_bluegrey_glossy));
 
         var cam: camera;
         camera_initialize(&cam, radians(20), vec3(-2, 2, 1), vec3(0, 0, -1), vec3(0, 1, 0));
