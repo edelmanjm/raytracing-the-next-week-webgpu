@@ -290,15 +290,16 @@ struct camera {
     samples_per_pixel: u32,
 }
 
-fn camera_initialize(cam: ptr<function, camera>) {
+fn camera_initialize(cam: ptr<function, camera>, vfov: f32) {
     (*cam).width = ${width};
     (*cam).height = ${height};
 
     const aspect_ratio: f32 = ${width} / ${height};
 
-    const viewport_height = 2.0;
-    let viewport_width = aspect_ratio * viewport_height;
+    let h = tan(vfov / 2);
     const focal_length = 1.0;
+    let viewport_height = 2 * h * focal_length;
+    let viewport_width = aspect_ratio * viewport_height;
 
     (*cam).origin = vec3(0.0, 0.0, 0.0);
     (*cam).horizontal = vec3(viewport_width, 0.0, 0.0);
@@ -432,7 +433,7 @@ fn main(
         hittable_list_add_sphere(&world, sphere(vec3<f32>(0.0, 1.0, -2.0), 1.0, material_metal_bluegrey_glossy));
 
         var cam: camera;
-        camera_initialize(&cam);
+        camera_initialize(&cam, radians(90));
 
         let offset = global_invocation_id.x;
 
