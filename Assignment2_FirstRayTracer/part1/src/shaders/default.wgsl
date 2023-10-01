@@ -261,7 +261,7 @@ fn camera_initialize(cam: ptr<function, camera>) {
     (*cam).vertical = vec3(0.0, viewport_height, 0.0);
     (*cam).lower_left_corner = (*cam).origin - (*cam).horizontal / 2 - (*cam).vertical / 2 - vec3(0, 0, focal_length);
 
-    (*cam).samples_per_pixel = 10;
+    (*cam).samples_per_pixel = 50;
 }
 
 fn render(cam: ptr<function, camera>, world: ptr<function, hittable_list>, offset: u32) -> color {
@@ -298,30 +298,28 @@ const infinity = 3.402823466e+38;
 fn ray_color(r: ray, world: ptr<function, hittable_list>) -> color {
     var rec: hit_record;
     var current_ray: ray = r;
-    var max_depth = 20;
-    var c: color = color(0.0, 0.0, 0.0);
-    var bounces = 1;
+    var max_depth = 100;
+    var c: color = color(1.0, 1.0, 1.0);
 
     // No recusion available
     for (var depth = 0; depth < max_depth; depth += 1) {
         if (hit_hittable_list(world, current_ray, 0.001, infinity, &rec)) {
-            bounces += 1;
             var scattered: ray;
             var attenuation: color;
             if (scatter(rec.mat, current_ray, rec, &attenuation, &scattered)) {
-                c += attenuation;
+                c *= attenuation;
                 current_ray = scattered;
             }
         } else {
             // Sky
             let unit_direction = normalize(r.direction);
             let t = 0.5 * (unit_direction.y + 1.0);
-            c += (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
+            c *= (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
             break;
         }
     }
 
-    return c / f32(bounces);
+    return c;
 }
 
 fn color_to_u32(c : color) -> u32 {
