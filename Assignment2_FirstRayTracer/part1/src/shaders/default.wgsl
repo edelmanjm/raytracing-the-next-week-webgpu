@@ -444,6 +444,7 @@ fn main(
         hittable_list_add_sphere(&world, sphere(vec3f(1.0, 0.0, -1.0), 0.5, material_metal_bluegrey_rough));
         hittable_list_add_sphere(&world, sphere(vec3f(0.0, 1.0, -2.0), 1.0, material_metal_bluegrey_glossy));
 
+        // Camera Requirement
         var cam: camera;
         camera_initialize(&cam, radians(20), vec3(-2, 2, 1), vec3(0, 0, -1), vec3(0, 1, 0));
 

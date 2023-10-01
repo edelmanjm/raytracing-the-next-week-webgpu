@@ -50,11 +50,11 @@ To make a few concrete requirements, your ray tracer should include the followin
 	- Comment in your code 'Materials Requirement'
 - [x] - Support reflection (e.g. a metal sphere would show this property)
 	- Comment in your code 'Reflection Requirement'
-- [ ] - A Camera class such that you can position the camera in different orientations
+- [x] - A Camera class such that you can position the camera in different orientations
 	- Comment in your code 'Camera Requirement'
 - [ ] - The ability to output an image called 'output.ppm'
 	- Comment in your code 'PPM Requirement'
-- [ ] - Implement gamma correction. You can use the trick Shirley uses in his book.
+- [x] - Implement gamma correction. You can use the trick Shirley uses in his book.
 	- Comment in your code 'Gamma Requirement'
 
 Note: That for each of the requirements, you should put a comment (in whatever syntax that is) with the text below so we can easily see that part of your implementation. This will help me give feedback. For instance, I might want to comment if I think you can add some abstraction to your spheres (e.g. An 'object manaager' class to manage all of your spheres).
