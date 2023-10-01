@@ -4,6 +4,7 @@
 struct ray {
     origin: vec3<f32>,
     direction: vec3<f32>,
+    strength: f32
 }
 
 fn ray_at(r: ray, t: f32) -> vec3<f32> {
@@ -29,6 +30,10 @@ fn near_zero(v: vec3<f32>) -> bool {
     // Return true if the vector is close to zero in all dimensions.
     const s = 1e-8;
     return length(v) < s;
+}
+
+fn reflect(v: vec3<f32>, n: vec3<f32>) -> vec3<f32> {
+    return v - 2 * dot(v, n) * n;
 }
 
 // End utility functions
@@ -106,22 +111,32 @@ struct material {
     ty: material_type,
     lambertian: material_lambertian,
     metal: material_metal,
+    absorption: f32,
 }
 
-fn material_bounce(mat: material, r_in: ray, rec: hit_record, attenuation: ptr<function, color>, scattered: ptr<function, ray>) -> bool {
-    if (mat.ty == MATERIAL_TYPE_LAMBERTIAN) {
-        var scatter_direction = rec.normal + random_unit_vector();
+// Returns the percentage of light that was scattered
+fn scatter(mat: material, r_in: ray, rec: hit_record, attenuation: ptr<function, color>, scattered: ptr<function, ray>) -> bool {
+    switch (mat.ty) {
+        case MATERIAL_TYPE_LAMBERTIAN {
+            var scatter_direction = rec.normal + random_unit_vector();
 
-        if (near_zero(scatter_direction)) {
-            scatter_direction = rec.normal;
+            if (near_zero(scatter_direction)) {
+                scatter_direction = rec.normal;
+            }
+
+            (*scattered) = ray(rec.p, scatter_direction, r_in.strength * (1.0 - mat.absorption));
+            (*attenuation) = mat.lambertian.albedo * r_in.strength;
+            return true;
         }
-
-        (*scattered) = ray(rec.p, scatter_direction);
-        (*attenuation) = mat.lambertian.albedo;
-        return true;
-    } else {
-        // TODO
-        return false;
+        case MATERIAL_TYPE_METAL {
+            let reflected: vec3<f32> = reflect(normalize(r_in.direction), rec.normal);
+            (*scattered) = ray(rec.p, reflected, r_in.strength * (1.0 - mat.absorption));
+            (*attenuation) = mat.metal.albedo * r_in.strength;
+            return true;
+        }
+        default {
+            return false;
+        }
     }
 }
 // End Materials
@@ -256,7 +271,9 @@ fn render(cam: ptr<function, camera>, world: ptr<function, hittable_list>, offse
     for (var sample: u32 = 0; sample < (*cam).samples_per_pixel; sample += 1) {
         let u = (x + random_f32()) / f32((*cam).width - 1);
         let v = (y + random_f32()) / f32((*cam).height - 1);
-        let r = ray((*cam).origin, (*cam).lower_left_corner + u * (*cam).horizontal + v * (*cam).vertical - (*cam).origin);
+        let r = ray((*cam).origin,
+                    (*cam).lower_left_corner + u * (*cam).horizontal + v * (*cam).vertical - (*cam).origin,
+                    1.0);
         pixel_color += ray_color(r, world);
     }
 
@@ -278,21 +295,25 @@ const infinity = 3.402823466e+38;
 fn ray_color(r: ray, world: ptr<function, hittable_list>) -> color {
     var rec: hit_record;
     var current_ray: ray = r;
-    var max_depth = 10;
+    var max_depth = 20;
     var c: color = color(0.0, 0.0, 0.0);
     var bounces = 1;
 
     // No recusion available
     for (var depth = 0; depth < max_depth; depth += 1) {
         if (hit_hittable_list(world, current_ray, 0.001, infinity, &rec)) {
-            let direction = rec.p + rec.normal + random_unit_vector();
-            current_ray = ray(rec.p, direction - rec.p);
             bounces += 1;
+            var scattered: ray;
+            var attenuation: color;
+            if (scatter(rec.mat, current_ray, rec, &attenuation, &scattered)) {
+                c += attenuation;
+                current_ray = scattered;
+            }
         } else {
             // Sky
             let unit_direction = normalize(r.direction);
             let t = 0.5 * (unit_direction.y + 1.0);
-            c = (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
+            c += (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
             break;
         }
     }
@@ -328,7 +349,8 @@ fn main(
 
         var material_lambertian_grey: material;
         material_lambertian_grey.ty = MATERIAL_TYPE_LAMBERTIAN;
-        material_lambertian_grey.lambertian.albedo = color(0.9, 0.9, 0.9);
+        material_lambertian_grey.lambertian.albedo = color(0.5, 0.5, 0.5);
+        material_lambertian_grey.absorption = 0.5;
 
         // World
         var world: hittable_list;
