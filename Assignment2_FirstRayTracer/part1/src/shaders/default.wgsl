@@ -128,6 +128,13 @@ struct material {
     absorption: f32,
 }
 
+fn reflectance(cosine: f32, ref_idx: f32) -> f32 {
+    // Use Schlick's approximation for reflectance.
+    var r0 = (1 - ref_idx) / (1 + ref_idx);
+    r0 = r0 * r0;
+    return r0 + (1 - r0) * pow((1 - cosine), 5);
+}
+
 // Returns the percentage of light that was scattered
 fn scatter(mat: material, r_in: ray, rec: hit_record, attenuation: ptr<function, color>, scattered: ptr<function, ray>) -> bool {
     switch (mat.ty) {
@@ -165,7 +172,7 @@ fn scatter(mat: material, r_in: ray, rec: hit_record, attenuation: ptr<function,
 
             let cannot_refract = refraction_ratio * sin_theta > 1.0;
             var direction: vec3<f32>;
-            if (cannot_refract) {
+            if (cannot_refract || reflectance(cos_theta, refraction_ratio) > random_f32()) {
                 direction = reflect(unit_direction, rec.normal);
             } else {
                 direction = refract(unit_direction, rec.normal, refraction_ratio);
@@ -418,10 +425,11 @@ fn main(
         // World
         // Sphere Requirement
         var world: hittable_list;
-        hittable_list_add_sphere(&world, sphere(vec3<f32>(0, 0, -1), 0.5, material_lambertian_green));
-        hittable_list_add_sphere(&world, sphere(vec3<f32>(0, -100.5, -1), 100, material_lambertian_red));
+        hittable_list_add_sphere(&world, sphere(vec3<f32>(0.0, 0.0, -1.0), 0.5, material_lambertian_green));
+        hittable_list_add_sphere(&world, sphere(vec3<f32>(0.0, -100.5, -1.0), 100, material_lambertian_red));
         hittable_list_add_sphere(&world, sphere(vec3<f32>(-1.0, 0.0, -1.0), 0.5, material_dielectric));
         hittable_list_add_sphere(&world, sphere(vec3<f32>(1.0, 0.0, -1.0), 0.5, material_metal_bluegrey_rough));
+        hittable_list_add_sphere(&world, sphere(vec3<f32>(0.0, 1.0, -2.0), 1.0, material_metal_bluegrey_glossy));
 
         var cam: camera;
         camera_initialize(&cam);
