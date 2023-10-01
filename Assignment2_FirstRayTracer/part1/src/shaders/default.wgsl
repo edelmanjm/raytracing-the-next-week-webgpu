@@ -105,6 +105,7 @@ struct material_lambertian {
 
 struct material_metal {
     albedo: color,
+    fuzz: f32,
 }
 
 struct material {
@@ -130,9 +131,11 @@ fn scatter(mat: material, r_in: ray, rec: hit_record, attenuation: ptr<function,
         }
         case MATERIAL_TYPE_METAL {
             let reflected: vec3<f32> = reflect(normalize(r_in.direction), rec.normal);
-            (*scattered) = ray(rec.p, reflected, r_in.strength * (1.0 - mat.absorption));
+            (*scattered) = ray(rec.p,
+                               reflected + mat.metal.fuzz * random_unit_vector(),
+                               r_in.strength * (1.0 - mat.absorption));
             (*attenuation) = mat.metal.albedo * r_in.strength;
-            return true;
+            return dot((*scattered).direction, rec.normal) > 0;
         }
         default {
             return false;
@@ -357,17 +360,24 @@ fn main(
         material_lambertian_red.lambertian.albedo = color(1.0, 0.0, 0.0);
         material_lambertian_red.absorption = 0.1;
 
-        var material_metal_bluegrey: material;
-        material_metal_bluegrey.ty = MATERIAL_TYPE_METAL;
-        material_metal_bluegrey.lambertian.albedo = color(0.3, 0.3, 0.9);
-        material_metal_bluegrey.absorption = 0.0;
+        var material_metal_bluegrey_glossy: material;
+        material_metal_bluegrey_glossy.ty = MATERIAL_TYPE_METAL;
+        material_metal_bluegrey_glossy.metal.albedo = color(0.3, 0.3, 0.5);
+        material_metal_bluegrey_glossy.metal.fuzz = 0.0;
+        material_metal_bluegrey_glossy.absorption = 0.0;
+
+        var material_metal_bluegrey_rough: material;
+        material_metal_bluegrey_rough.ty = MATERIAL_TYPE_METAL;
+        material_metal_bluegrey_rough.metal.albedo = color(0.3, 0.3, 0.5);
+        material_metal_bluegrey_rough.metal.fuzz = 0.5;
+        material_metal_bluegrey_rough.absorption = 0.0;
 
         // World
         var world: hittable_list;
         hittable_list_add_sphere(&world, sphere(vec3<f32>(0, 0, -1), 0.5, material_lambertian_green));
         hittable_list_add_sphere(&world, sphere(vec3<f32>(0, -100.5, -1), 100, material_lambertian_red));
-        hittable_list_add_sphere(&world, sphere(vec3<f32>(-1.0, 0.0, -1.0), 0.5, material_metal_bluegrey));
-        hittable_list_add_sphere(&world, sphere(vec3<f32>(1.0, 0.0, -1.0), 0.5, material_metal_bluegrey));
+        hittable_list_add_sphere(&world, sphere(vec3<f32>(-1.0, 0.0, -1.0), 0.5, material_metal_bluegrey_glossy));
+        hittable_list_add_sphere(&world, sphere(vec3<f32>(1.0, 0.0, -1.0), 0.5, material_metal_bluegrey_rough));
 
         var cam: camera;
         camera_initialize(&cam);
