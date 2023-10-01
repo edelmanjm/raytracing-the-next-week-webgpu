@@ -36,6 +36,13 @@ fn reflect(v: vec3<f32>, n: vec3<f32>) -> vec3<f32> {
     return v - 2 * dot(v, n) * n;
 }
 
+fn refract(uv: vec3<f32>, n: vec3<f32>, etai_over_etat: f32) -> vec3<f32> {
+    let cos_theta = min(dot(-uv, n), 1.0);
+    let r_out_perp =  etai_over_etat * (uv + cos_theta*n);
+    let r_out_parallel = -sqrt(abs(1.0 - length_squared(r_out_perp))) * n;
+    return r_out_perp + r_out_parallel;
+}
+
 // End utility functions
 // ----------------------------------------------------------------------------
 
@@ -98,6 +105,7 @@ fn random_on_hemisphere(normal: vec3<f32>) -> vec3<f32> {
 alias material_type = u32;
 const MATERIAL_TYPE_LAMBERTIAN : material_type = 0;
 const MATERIAL_TYPE_METAL : material_type = 1;
+const MATERIAL_TYPE_DIELECTRIC : material_type = 2;
 
 struct material_lambertian {
     albedo: color,
@@ -108,10 +116,15 @@ struct material_metal {
     fuzz: f32,
 }
 
+struct material_dielectric {
+    ior: f32,
+}
+
 struct material {
     ty: material_type,
     lambertian: material_lambertian,
     metal: material_metal,
+    dielectric: material_dielectric,
     absorption: f32,
 }
 
@@ -136,6 +149,21 @@ fn scatter(mat: material, r_in: ray, rec: hit_record, attenuation: ptr<function,
                                r_in.strength * (1.0 - mat.absorption));
             (*attenuation) = mat.metal.albedo * r_in.strength;
             return dot((*scattered).direction, rec.normal) > 0;
+        }
+        case MATERIAL_TYPE_DIELECTRIC {
+            (*attenuation) = color(1.0, 1.0, 1.0);
+            var refraction_ratio: f32;
+            if (rec.front_face) {
+                refraction_ratio = 1.0 / mat.dielectric.ior;
+            } else {
+                refraction_ratio = mat.dielectric.ior;
+            }
+
+            let unit_direction = normalize(r_in.direction);
+            let refracted = refract(unit_direction, rec.normal, refraction_ratio);
+
+            (*scattered) = ray(rec.p, refracted, r_in.strength * (1.0 - mat.absorption));
+            return true;
         }
         default {
             return false;
@@ -373,12 +401,17 @@ fn main(
         material_metal_bluegrey_rough.metal.fuzz = 0.5;
         material_metal_bluegrey_rough.absorption = 0.0;
 
+        var material_dielectric: material;
+        material_dielectric.ty = MATERIAL_TYPE_DIELECTRIC;
+        material_dielectric.dielectric.ior = 1.5;
+        material_dielectric.absorption = 0.2;
+
         // World
         // Sphere Requirement
         var world: hittable_list;
         hittable_list_add_sphere(&world, sphere(vec3<f32>(0, 0, -1), 0.5, material_lambertian_green));
         hittable_list_add_sphere(&world, sphere(vec3<f32>(0, -100.5, -1), 100, material_lambertian_red));
-        hittable_list_add_sphere(&world, sphere(vec3<f32>(-1.0, 0.0, -1.0), 0.5, material_metal_bluegrey_glossy));
+        hittable_list_add_sphere(&world, sphere(vec3<f32>(-1.0, 0.0, -1.0), 0.5, material_dielectric));
         hittable_list_add_sphere(&world, sphere(vec3<f32>(1.0, 0.0, -1.0), 0.5, material_metal_bluegrey_rough));
 
         var cam: camera;
