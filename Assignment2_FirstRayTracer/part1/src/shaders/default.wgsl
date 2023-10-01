@@ -284,27 +284,39 @@ struct camera {
     width: u32,
     height: u32,
     origin: vec3<f32>,
-    horizontal: vec3<f32>,
-    vertical: vec3<f32>,
     lower_left_corner: vec3<f32>,
     samples_per_pixel: u32,
+
+    u: vec3<f32>,
+    v: vec3<f32>,
+    w: vec3<f32>, // Camera frame basis vectors
+
+    viewport_u: vec3<f32>,
+    viewport_v: vec3<f32>,
 }
 
-fn camera_initialize(cam: ptr<function, camera>, vfov: f32) {
+fn camera_initialize(cam: ptr<function, camera>, vfov: f32, lookfrom: vec3<f32>, lookat: vec3<f32>, vup: vec3<f32>) {
     (*cam).width = ${width};
     (*cam).height = ${height};
+    (*cam).origin = lookfrom;
 
     const aspect_ratio: f32 = ${width} / ${height};
 
+    let focal_length = length(lookfrom - lookat);
     let h = tan(vfov / 2);
-    const focal_length = 1.0;
     let viewport_height = 2 * h * focal_length;
     let viewport_width = aspect_ratio * viewport_height;
 
-    (*cam).origin = vec3(0.0, 0.0, 0.0);
-    (*cam).horizontal = vec3(viewport_width, 0.0, 0.0);
-    (*cam).vertical = vec3(0.0, viewport_height, 0.0);
-    (*cam).lower_left_corner = (*cam).origin - (*cam).horizontal / 2 - (*cam).vertical / 2 - vec3(0, 0, focal_length);
+    // Calculate the u,v,w unit basis vectors for the camera coordinate frame.
+    (*cam).w = normalize(lookfrom - lookat);
+    (*cam).u = normalize(cross(vup, (*cam).w));
+    (*cam).v = cross((*cam).w, (*cam).u);
+
+    // Calculate the vectors across the horizontal and down the vertical viewport edges.
+    (*cam).viewport_u = viewport_width * (*cam).u; // Vector across viewport horizontal edge
+    (*cam).viewport_v = viewport_height * (*cam).v; // Vector down viewport vertical edge
+
+    (*cam).lower_left_corner = (*cam).origin - (*cam).viewport_u / 2 - (*cam).viewport_v / 2 - 1 * (*cam).w;
 
     (*cam).samples_per_pixel = 5;
 }
@@ -320,7 +332,7 @@ fn render(cam: ptr<function, camera>, world: ptr<function, hittable_list>, offse
         let u = (x + random_f32()) / f32((*cam).width - 1);
         let v = (y + random_f32()) / f32((*cam).height - 1);
         let r = ray((*cam).origin,
-                    (*cam).lower_left_corner + u * (*cam).horizontal + v * (*cam).vertical - (*cam).origin,
+                    (*cam).lower_left_corner + u * (*cam).viewport_u + v * (*cam).viewport_v - (*cam).origin,
                     1.0);
         pixel_color += ray_color(r, world);
     }
@@ -433,7 +445,7 @@ fn main(
         hittable_list_add_sphere(&world, sphere(vec3<f32>(0.0, 1.0, -2.0), 1.0, material_metal_bluegrey_glossy));
 
         var cam: camera;
-        camera_initialize(&cam, radians(90));
+        camera_initialize(&cam, radians(20), vec3(-2, 2, 1), vec3(0, 0, -1), vec3(0, 1, 0));
 
         let offset = global_invocation_id.x;
 
