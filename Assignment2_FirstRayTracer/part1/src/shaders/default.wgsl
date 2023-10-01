@@ -151,7 +151,7 @@ fn scatter(mat: material, r_in: ray, rec: hit_record, attenuation: ptr<function,
             return dot((*scattered).direction, rec.normal) > 0;
         }
         case MATERIAL_TYPE_DIELECTRIC {
-            (*attenuation) = color(1.0, 1.0, 1.0);
+            (*attenuation) = color(1.0, 1.0, 1.0) * r_in.strength;
             var refraction_ratio: f32;
             if (rec.front_face) {
                 refraction_ratio = 1.0 / mat.dielectric.ior;
@@ -160,9 +160,18 @@ fn scatter(mat: material, r_in: ray, rec: hit_record, attenuation: ptr<function,
             }
 
             let unit_direction = normalize(r_in.direction);
-            let refracted = refract(unit_direction, rec.normal, refraction_ratio);
+            let cos_theta = min(dot(-unit_direction, rec.normal), 1.0);
+            let sin_theta = sqrt(1.0 - cos_theta*cos_theta);
 
-            (*scattered) = ray(rec.p, refracted, r_in.strength * (1.0 - mat.absorption));
+            let cannot_refract = refraction_ratio * sin_theta > 1.0;
+            var direction: vec3<f32>;
+            if (cannot_refract) {
+                direction = reflect(unit_direction, rec.normal);
+            } else {
+                direction = refract(unit_direction, rec.normal, refraction_ratio);
+            }
+
+            (*scattered) = ray(rec.p, direction, r_in.strength * (1.0 - mat.absorption));
             return true;
         }
         default {
@@ -289,7 +298,7 @@ fn camera_initialize(cam: ptr<function, camera>) {
     (*cam).vertical = vec3(0.0, viewport_height, 0.0);
     (*cam).lower_left_corner = (*cam).origin - (*cam).horizontal / 2 - (*cam).vertical / 2 - vec3(0, 0, focal_length);
 
-    (*cam).samples_per_pixel = 50;
+    (*cam).samples_per_pixel = 5;
 }
 
 fn render(cam: ptr<function, camera>, world: ptr<function, hittable_list>, offset: u32) -> color {
