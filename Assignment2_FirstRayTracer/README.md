@@ -2,13 +2,12 @@
 
 *TODO*: Please edit the following information in your assignment
 
-* Name: 
+* Name: Jonathan Edelman
 * How many hours did it take you to complete this assignment? 
 * Did you collaborate or share ideas with any other students/TAs/Professors? 
+  * No.
 * Did you use any external resources? 
-  * (tbd if any)
-  * (tbd if any)
-  * (tbd if any)
+  * amaiorano's implementation of raytracing in one weekend in WebGPU was referenced for initial setup and some limited design considerations, principally how to actually set up a WebGPU raytracing environment in a fragment shader. This covered most of chapters 3 and 4 of the textbook. Except for random number generation (chapter 8.1) and material abstractions (chapter 10.1), this repo was only used for debugging WebGPU-specific bugs and as output reference for the remaining chapters.
 * (Optional) What was the most interesting part of the assignment? How would you improve this assignment?
 
 # Assignment

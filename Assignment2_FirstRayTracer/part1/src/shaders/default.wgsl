@@ -339,6 +339,7 @@ fn color_to_u32(c : color) -> u32 {
 
 fn write_color(offset: u32, pixel_color: color, samples_per_pixel: u32) {
     // Gamma correction
+    // Gamma Requirement
     var c = sqrt(pixel_color);
 
     output[offset] = color_to_u32(c);
@@ -350,6 +351,7 @@ fn main(
     ) {
         init_rand(global_invocation_id.x, vec4(vec3<f32>(global_invocation_id), 1.0));
 
+        // Materials Requirement
         var material_lambertian_green: material;
         material_lambertian_green.ty = MATERIAL_TYPE_LAMBERTIAN;
         material_lambertian_green.lambertian.albedo = color(0.0, 1.0, 0.0);
@@ -360,6 +362,7 @@ fn main(
         material_lambertian_red.lambertian.albedo = color(1.0, 0.0, 0.0);
         material_lambertian_red.absorption = 0.1;
 
+        // Reflection Requirement
         var material_metal_bluegrey_glossy: material;
         material_metal_bluegrey_glossy.ty = MATERIAL_TYPE_METAL;
         material_metal_bluegrey_glossy.metal.albedo = color(0.3, 0.3, 0.5);
@@ -373,6 +376,7 @@ fn main(
         material_metal_bluegrey_rough.absorption = 0.0;
 
         // World
+        // Sphere Requirement
         var world: hittable_list;
         hittable_list_add_sphere(&world, sphere(vec3<f32>(0, 0, -1), 0.5, material_lambertian_green));
         hittable_list_add_sphere(&world, sphere(vec3<f32>(0, -100.5, -1), 100, material_lambertian_red));

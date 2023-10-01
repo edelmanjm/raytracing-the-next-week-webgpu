@@ -44,11 +44,11 @@ This assignment will be a little more self-guided in a sense, in that the expect
 
 To make a few concrete requirements, your ray tracer should include the following.
 
-- [ ] - At least 3 spheres
-	- Comment in your code 'Sphere Requirement'
-- [ ] - At least 2 materials (e.g. diffuse sphere, glass, metal, opaque color, etc.)
+- [x] - At least 3 spheres
+	- Comment in your code 'Sphere Requirement':
+- [x] - At least 2 materials (e.g. diffuse sphere, glass, metal, opaque color, etc.)
 	- Comment in your code 'Materials Requirement'
-- [ ] - Support reflection (e.g. a metal sphere would show this property)
+- [x] - Support reflection (e.g. a metal sphere would show this property)
 	- Comment in your code 'Reflection Requirement'
 - [ ] - A Camera class such that you can position the camera in different orientations
 	- Comment in your code 'Camera Requirement'
