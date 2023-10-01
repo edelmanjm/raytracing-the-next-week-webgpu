@@ -347,15 +347,27 @@ fn main(
     ) {
         init_rand(global_invocation_id.x, vec4(vec3<f32>(global_invocation_id), 1.0));
 
-        var material_lambertian_grey: material;
-        material_lambertian_grey.ty = MATERIAL_TYPE_LAMBERTIAN;
-        material_lambertian_grey.lambertian.albedo = color(0.5, 0.5, 0.5);
-        material_lambertian_grey.absorption = 0.5;
+        var material_lambertian_green: material;
+        material_lambertian_green.ty = MATERIAL_TYPE_LAMBERTIAN;
+        material_lambertian_green.lambertian.albedo = color(0.0, 1.0, 0.0);
+        material_lambertian_green.absorption = 0.5;
+
+        var material_lambertian_red: material;
+        material_lambertian_red.ty = MATERIAL_TYPE_LAMBERTIAN;
+        material_lambertian_red.lambertian.albedo = color(1.0, 0.0, 0.0);
+        material_lambertian_red.absorption = 0.1;
+
+        var material_metal_bluegrey: material;
+        material_metal_bluegrey.ty = MATERIAL_TYPE_METAL;
+        material_metal_bluegrey.lambertian.albedo = color(0.3, 0.3, 0.9);
+        material_metal_bluegrey.absorption = 0.0;
 
         // World
         var world: hittable_list;
-        hittable_list_add_sphere(&world, sphere(vec3<f32>(0, 0, -1), 0.5, material_lambertian_grey));
-        hittable_list_add_sphere(&world, sphere(vec3<f32>(0, -100.5, -1), 100, material_lambertian_grey));
+        hittable_list_add_sphere(&world, sphere(vec3<f32>(0, 0, -1), 0.5, material_lambertian_green));
+        hittable_list_add_sphere(&world, sphere(vec3<f32>(0, -100.5, -1), 100, material_lambertian_red));
+        hittable_list_add_sphere(&world, sphere(vec3<f32>(-1.0, 0.0, -1.0), 0.5, material_metal_bluegrey));
+        hittable_list_add_sphere(&world, sphere(vec3<f32>(1.0, 0.0, -1.0), 0.5, material_metal_bluegrey));
 
         var cam: camera;
         camera_initialize(&cam);
