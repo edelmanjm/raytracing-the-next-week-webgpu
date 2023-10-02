@@ -258,7 +258,7 @@ fn hit_sphere(s: sphere, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function
     return true;
 }
 
-const MAX_NUMBER_SPHERES = 10;
+const MAX_NUMBER_SPHERES = 110;
 struct hittable_list {
     spheres: array<sphere, MAX_NUMBER_SPHERES>,
     spheres_size: u32,
@@ -349,7 +349,7 @@ fn camera_initialize(cam: ptr<function, camera>, vfov: f32, lookfrom: vec3f, loo
     (*cam).defocus_disk_u = (*cam).u * defocus_radius;
     (*cam).defocus_disk_v = (*cam).v * defocus_radius;
 
-    (*cam).samples_per_pixel = 5;
+    (*cam).samples_per_pixel = 25;
 }
 
 fn pixel_sample_square(cam: ptr<function, camera>) -> vec3f {
@@ -464,52 +464,117 @@ fn main(
     ) {
         init_rand(global_invocation_id.x, vec4(vec3f(global_invocation_id), 1.0));
 
-        // Materials Requirement
-        var material_lambertian_green: material;
-        material_lambertian_green.ty = MATERIAL_TYPE_LAMBERTIAN;
-        material_lambertian_green.lambertian.albedo = color(0.0, 1.0, 0.0);
-        material_lambertian_green.absorption = 0.5;
-
-        var material_lambertian_red: material;
-        material_lambertian_red.ty = MATERIAL_TYPE_LAMBERTIAN;
-        material_lambertian_red.lambertian.albedo = color(1.0, 0.0, 0.0);
-        material_lambertian_red.absorption = 0.1;
-
-        // Reflection Requirement
-        var material_metal_bluegrey_glossy: material;
-        material_metal_bluegrey_glossy.ty = MATERIAL_TYPE_METAL;
-        material_metal_bluegrey_glossy.metal.albedo = color(0.3, 0.3, 0.5);
-        material_metal_bluegrey_glossy.metal.fuzz = 0.0;
-        material_metal_bluegrey_glossy.absorption = 0.0;
-
-        var material_metal_bluegrey_rough: material;
-        material_metal_bluegrey_rough.ty = MATERIAL_TYPE_METAL;
-        material_metal_bluegrey_rough.metal.albedo = color(0.3, 0.3, 0.5);
-        material_metal_bluegrey_rough.metal.fuzz = 0.5;
-        material_metal_bluegrey_rough.absorption = 0.0;
-
-        var material_dielectric: material;
-        material_dielectric.ty = MATERIAL_TYPE_DIELECTRIC;
-        material_dielectric.dielectric.ior = 1.5;
-        material_dielectric.absorption = 0.2;
-
         // World
-        // Sphere Requirement
         var world: hittable_list;
-        hittable_list_add_sphere(&world, sphere(vec3f(0.0, 0.0, -1.0), 0.5, material_lambertian_green));
-        hittable_list_add_sphere(&world, sphere(vec3f(0.0, -100.5, -1.0), 100, material_lambertian_red));
-        hittable_list_add_sphere(&world, sphere(vec3f(-1.0, 0.0, -1.0), 0.5, material_dielectric));
-        hittable_list_add_sphere(&world, sphere(vec3f(1.0, 0.0, -1.0), 0.5, material_metal_bluegrey_rough));
-        hittable_list_add_sphere(&world, sphere(vec3f(0.0, 1.0, -2.0), 1.0, material_metal_bluegrey_glossy));
 
-        // Camera Requirement
         var cam: camera;
-        camera_initialize(&cam, radians(45), vec3(-2, 2, 1), vec3(0, 0, -1), vec3(0, 1, 0), radians(10.0), 3.4);
+
+        let scene_index = 0;
+        switch (scene_index) {
+            case 0, default: {
+                // Materials Requirement
+                var material_lambertian_green: material;
+                material_lambertian_green.ty = MATERIAL_TYPE_LAMBERTIAN;
+                material_lambertian_green.lambertian.albedo = color(0.0, 1.0, 0.0);
+                material_lambertian_green.absorption = 0.5;
+
+                var material_lambertian_red: material;
+                material_lambertian_red.ty = MATERIAL_TYPE_LAMBERTIAN;
+                material_lambertian_red.lambertian.albedo = color(1.0, 0.0, 0.0);
+                material_lambertian_red.absorption = 0.1;
+
+                // Reflection Requirement
+                var material_metal_bluegrey_glossy: material;
+                material_metal_bluegrey_glossy.ty = MATERIAL_TYPE_METAL;
+                material_metal_bluegrey_glossy.metal.albedo = color(0.3, 0.3, 0.5);
+                material_metal_bluegrey_glossy.metal.fuzz = 0.0;
+                material_metal_bluegrey_glossy.absorption = 0.0;
+
+                var material_metal_bluegrey_rough: material;
+                material_metal_bluegrey_rough.ty = MATERIAL_TYPE_METAL;
+                material_metal_bluegrey_rough.metal.albedo = color(0.3, 0.3, 0.5);
+                material_metal_bluegrey_rough.metal.fuzz = 0.5;
+                material_metal_bluegrey_rough.absorption = 0.0;
+
+                var material_dielectric: material;
+                material_dielectric.ty = MATERIAL_TYPE_DIELECTRIC;
+                material_dielectric.dielectric.ior = 1.5;
+                material_dielectric.absorption = 0.2;
+
+                // Sphere Requirement
+                hittable_list_add_sphere(&world, sphere(vec3f(0.0, 0.0, -1.0), 0.5, material_lambertian_green));
+                hittable_list_add_sphere(&world, sphere(vec3f(0.0, -100.5, -1.0), 100, material_lambertian_red));
+                hittable_list_add_sphere(&world, sphere(vec3f(-1.0, 0.0, -1.0), 0.5, material_dielectric));
+                hittable_list_add_sphere(&world, sphere(vec3f(1.0, 0.0, -1.0), 0.5, material_metal_bluegrey_rough));
+                hittable_list_add_sphere(&world, sphere(vec3f(0.0, 1.0, -2.0), 1.0, material_metal_bluegrey_glossy));
+
+                // Camera Requirement
+                camera_initialize(&cam, radians(45), vec3(-2, 2, 1), vec3(0, 0, -1), vec3(0, 1, 0), radians(10.0), 3.4);
+            }
+            case 1: {
+                // Materials Requirement
+                var ground_material: material;
+                ground_material.ty = MATERIAL_TYPE_LAMBERTIAN;
+                ground_material.lambertian.albedo = color(0.5, 0.5, 0.5);
+                ground_material.absorption = 0.5;
+
+                hittable_list_add_sphere(&world, sphere(vec3f(0.0, -1000.0, 0.0), 1000, ground_material));
+
+                // Sphere Requirement
+                for (var a: i32 = -5; a < 5; a++) {
+                    for (var b: i32 = -5; b < 5; b++) {
+                        let choose_mat = (a + b) % 3;
+
+                        // Current random implementation doesn't work well for this, so we'll avoid it for now
+                        let center = vec3f(f32(a), 0.2, f32(b));
+
+                        if (length(center - vec3f(4, 0.2, 0)) > 0.9) {
+                            var sphere_material: material;
+
+                            if (choose_mat == 0) {
+                                // Diffused
+                                sphere_material.ty = MATERIAL_TYPE_LAMBERTIAN;
+                                sphere_material.lambertian.albedo = color(0.5, 0, 0);
+                            } else if (choose_mat == 1) {
+                                // Metal
+                                sphere_material.ty = MATERIAL_TYPE_METAL;
+                                sphere_material.metal.albedo = color(0.0, 0.5, 0.0);
+                                sphere_material.metal.fuzz = 0.2;
+                            } else {
+                                // Glass
+                                sphere_material.ty = MATERIAL_TYPE_DIELECTRIC;
+                                sphere_material.dielectric.ior = 1.5;
+                            }
+
+                            sphere_material.absorption = 1.0;
+                            hittable_list_add_sphere(&world, sphere(center, 0.1, sphere_material));
+                        }
+                    }
+                }
+
+                var big_dielectric_material: material;
+                big_dielectric_material.ty = MATERIAL_TYPE_DIELECTRIC;
+                big_dielectric_material.dielectric.ior = 1.5;
+                hittable_list_add_sphere(&world, sphere(vec3f(0.0, 1.0, 0.0), 1.0, big_dielectric_material));
+
+                var big_lambertian_material: material;
+                big_lambertian_material.ty = MATERIAL_TYPE_LAMBERTIAN;
+                big_lambertian_material.lambertian.albedo = color(0.4, 0.2, 0.1);
+                hittable_list_add_sphere(&world, sphere(vec3f(-4.0, 1.0, 0.0), 1.0, big_lambertian_material));
+
+                var big_metal_material: material;
+                big_metal_material.ty = MATERIAL_TYPE_METAL;
+                big_metal_material.metal.albedo = color(0.7, 0.6, 0.5);
+                big_metal_material.metal.fuzz = 0.0;
+                hittable_list_add_sphere(&world, sphere(vec3f(4.0, 1.0, 0.0), 1.0, big_metal_material));
+
+                // Camera Requirement
+                camera_initialize(&cam, radians(20), vec3(13, 2, 3), vec3(0, 0, 0), vec3(0, 1, 0), radians(0.6), 10.0);
+            }
+        }
 
         let offset = global_invocation_id.x;
-
         var c: color = render(&cam, &world, offset);
-
         write_color(offset, c, cam.samples_per_pixel);
 }
 // End main
