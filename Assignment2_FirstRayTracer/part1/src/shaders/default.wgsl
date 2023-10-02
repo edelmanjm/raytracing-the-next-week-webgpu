@@ -85,6 +85,15 @@ fn random_in_unit_sphere() -> vec3f {
     }
 }
 
+fn random_in_unit_disk() -> vec3f {
+    loop {
+        let p = vec3f(random_range_f32(-1, 1), random_range_f32(-1, 1), 0);
+        if (length_squared(p) < 1) {
+            return p;
+        }
+    }
+}
+
 fn random_unit_vector() -> vec3f {
     return normalize(random_in_unit_sphere());
 }
@@ -284,7 +293,7 @@ struct camera {
     width: u32,
     height: u32,
     origin: vec3f,
-    lower_left_corner: vec3f,
+    pixel00_loc: vec3f,
     samples_per_pixel: u32,
 
     u: vec3f,
@@ -293,12 +302,23 @@ struct camera {
 
     viewport_u: vec3f,
     viewport_v: vec3f,
+
+    pixel_delta_u: vec3f, // Offset to pixel to the right
+    pixel_delta_v: vec3f, // Offset to pixel below
+
+    defocus_angle: f32, // Variation angle of rays through each pixel
+    focus_dist: f32, // Distance from camera lookfrom point to plane of perfect focus
+
+    defocus_disk_u: vec3f, // Defocus disk horizontal radius
+    defocus_disk_v: vec3f, // Defocus disk vertical radius
 }
 
-fn camera_initialize(cam: ptr<function, camera>, vfov: f32, lookfrom: vec3f, lookat: vec3f, vup: vec3f) {
+fn camera_initialize(cam: ptr<function, camera>, vfov: f32, lookfrom: vec3f, lookat: vec3f, vup: vec3f, defocus_angle: f32, focus_dist: f32) {
     (*cam).width = ${width};
     (*cam).height = ${height};
     (*cam).origin = lookfrom;
+    (*cam).defocus_angle = defocus_angle;
+    (*cam).focus_dist = focus_dist;
 
     const aspect_ratio: f32 = ${width} / ${height};
 
@@ -316,9 +336,51 @@ fn camera_initialize(cam: ptr<function, camera>, vfov: f32, lookfrom: vec3f, loo
     (*cam).viewport_u = viewport_width * (*cam).u; // Vector across viewport horizontal edge
     (*cam).viewport_v = viewport_height * (*cam).v; // Vector down viewport vertical edge
 
-    (*cam).lower_left_corner = (*cam).origin - (*cam).viewport_u / 2 - (*cam).viewport_v / 2 - 1 * (*cam).w;
+    // Calculate the horizontal and vertical delta vectors to the next pixel.
+    (*cam).pixel_delta_u = (*cam).viewport_u / ${width};
+    (*cam).pixel_delta_v = (*cam).viewport_v / ${height};
+
+    // Calculate the location of the upper left pixel.
+    let viewport_upper_left = (*cam).origin - (focal_length * (*cam).w) - (*cam).viewport_u / 2 - (*cam).viewport_v / 2;
+    (*cam).pixel00_loc = viewport_upper_left + 0.5 * ((*cam).pixel_delta_u + (*cam).pixel_delta_v);
+
+    // Calculate the camera defocus disk basis vectors.
+    let defocus_radius = focus_dist * tan(defocus_angle / 2);
+    (*cam).defocus_disk_u = (*cam).u * defocus_radius;
+    (*cam).defocus_disk_v = (*cam).v * defocus_radius;
 
     (*cam).samples_per_pixel = 5;
+}
+
+fn pixel_sample_square(cam: ptr<function, camera>) -> vec3f {
+    // Returns a random point in the square surrounding a pixel at the origin.
+    let px = -0.5 + random_f32();
+    let py = -0.5 + random_f32();
+    return (px * (*cam).pixel_delta_u) + (py * (*cam).pixel_delta_v);
+}
+
+fn defocus_disk_sample(cam: ptr<function, camera>) -> vec3f {
+    // Returns a random point in the camera defocus disk.
+    let p = random_in_unit_disk();
+    return (*cam).origin + (p[0] * (*cam).defocus_disk_u) + (p[1] * (*cam).defocus_disk_v);
+}
+
+fn get_ray(cam: ptr<function, camera>, i: f32, j: f32) -> ray {
+    // Get a randomly-sampled camera ray for the pixel at location i,j, originating from
+    // the camera defocus disk.
+
+    let pixel_center = (*cam).pixel00_loc + (i * (*cam).pixel_delta_u) + (j * (*cam).pixel_delta_v);
+    let pixel_sample = pixel_center + pixel_sample_square(cam);
+
+    var ray_origin: vec3f;
+    if ((*cam).defocus_angle <= 0) {
+        ray_origin = (*cam).origin;
+    } else {
+        ray_origin = defocus_disk_sample(cam);
+    }
+    let ray_direction = pixel_sample - ray_origin;
+
+    return ray(ray_origin, ray_direction, 1.0);
 }
 
 fn render(cam: ptr<function, camera>, world: ptr<function, hittable_list>, offset: u32) -> color {
@@ -329,11 +391,7 @@ fn render(cam: ptr<function, camera>, world: ptr<function, hittable_list>, offse
     // Render
     var pixel_color = color(0,0,0);
     for (var sample: u32 = 0; sample < (*cam).samples_per_pixel; sample += 1) {
-        let u = (x + random_f32()) / f32((*cam).width - 1);
-        let v = (y + random_f32()) / f32((*cam).height - 1);
-        let r = ray((*cam).origin,
-                    (*cam).lower_left_corner + u * (*cam).viewport_u + v * (*cam).viewport_v - (*cam).origin,
-                    1.0);
+        let r: ray = get_ray(cam, x, y);
         pixel_color += ray_color(r, world);
     }
 
@@ -446,7 +504,7 @@ fn main(
 
         // Camera Requirement
         var cam: camera;
-        camera_initialize(&cam, radians(20), vec3(-2, 2, 1), vec3(0, 0, -1), vec3(0, 1, 0));
+        camera_initialize(&cam, radians(45), vec3(-2, 2, 1), vec3(0, 0, -1), vec3(0, 1, 0), radians(10.0), 3.4);
 
         let offset = global_invocation_id.x;
 
