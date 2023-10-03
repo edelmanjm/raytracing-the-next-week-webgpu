@@ -1,4 +1,4 @@
-export async function writeP3(path: string, image: ImageData): Promise<void> {
+export function convertP3(image: ImageData): string {
   let out: string[] = [];
 
   out.push('P3');
@@ -16,8 +16,7 @@ export async function writeP3(path: string, image: ImageData): Promise<void> {
       .join(' '),
   );
 
-  // Preview.app seems to like a trailing newline
-  // await fs.promises.writeFile(path, out.join('\n') + '\n', 'utf-8');
+  return out.join('\n') + '\n';
 }
 
 export async function writeP6(path: string, image: ImageData): Promise<void> {

@@ -23,7 +23,11 @@ export default class Renderer {
   // @ts-ignore
   outputBuffer: GPUBuffer;
   // @ts-ignore
+  readBuffer: GPUBuffer;
+  // @ts-ignore
   numGroups: number;
+  // @ts-ignore
+  frame: ImageData;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -70,6 +74,12 @@ export default class Renderer {
     // }
     // this.outputBuffer.unmap();
 
+    // Get a GPU buffer for reading in an unmapped state.
+    this.readBuffer = this.device.createBuffer({
+      size: bufferNumElements * Uint32Array.BYTES_PER_ELEMENT,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+    });
+
     this.bindGroup = this.device.createBindGroup({
       layout: this.pipeline.getBindGroupLayout(0),
       entries: [{ binding: 0, resource: { buffer: this.outputBuffer } }],
@@ -97,7 +107,19 @@ export default class Renderer {
     }
   }
 
-  render(dt: number) {
+  bgraToRgba(bgraArray: Uint8ClampedArray): Uint8ClampedArray {
+    // Need to do a copy so the buffer doesn't die, so no need to do the swap in place
+    const rgbBuffer = new Uint8ClampedArray(bgraArray.length);
+    for (let i = 0; i < bgraArray.length; i += 4) {
+      rgbBuffer[i] = bgraArray[i + 2]; // Red channel
+      rgbBuffer[i + 1] = bgraArray[i + 1]; // Green channel
+      rgbBuffer[i + 2] = bgraArray[i]; // Blue channel
+      rgbBuffer[i + 3] = bgraArray[i + 3]; // Alpha channel
+    }
+    return rgbBuffer;
+  }
+
+  async render() {
     let commandBuffers = Array<GPUCommandBuffer>();
 
     // Run the compute shader
@@ -131,9 +153,28 @@ export default class Renderer {
       };
       renderEncoder.copyBufferToTexture(imageCopyBuffer, imageCopyTexture, extent);
 
+      // From https://developer.chrome.com/articles/gpu-compute/.
+      // Encode commands for copying buffer to buffer.
+      renderEncoder.copyBufferToBuffer(
+        imageCopyBuffer.buffer,
+        0,
+        this.readBuffer,
+        0,
+        this.canvas.width * this.canvas.height * Uint32Array.BYTES_PER_ELEMENT,
+      );
+
       commandBuffers.push(renderEncoder.finish());
     }
 
     this.queue.submit(commandBuffers);
+
+    // Read buffer.
+    await this.readBuffer.mapAsync(GPUMapMode.READ);
+    this.frame = new ImageData(
+      this.bgraToRgba(new Uint8ClampedArray(this.readBuffer.getMappedRange())),
+      this.canvas.width,
+      this.canvas.height,
+    );
+    this.readBuffer.unmap();
   }
 }

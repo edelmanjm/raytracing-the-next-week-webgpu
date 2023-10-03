@@ -52,7 +52,7 @@ To make a few concrete requirements, your ray tracer should include the followin
 	- Comment in your code 'Reflection Requirement'
 - [x] - A Camera class such that you can position the camera in different orientations
 	- Comment in your code 'Camera Requirement'
-- [ ] - The ability to output an image called 'output.ppm'
+- [x] - The ability to output an image called 'output.ppm'
 	- Comment in your code 'PPM Requirement'
 - [x] - Implement gamma correction. You can use the trick Shirley uses in his book.
 	- Comment in your code 'Gamma Requirement'
