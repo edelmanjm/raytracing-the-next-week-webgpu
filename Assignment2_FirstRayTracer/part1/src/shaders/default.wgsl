@@ -349,7 +349,7 @@ fn camera_initialize(cam: ptr<function, camera>, vfov: f32, lookfrom: vec3f, loo
     (*cam).defocus_disk_u = (*cam).u * defocus_radius;
     (*cam).defocus_disk_v = (*cam).v * defocus_radius;
 
-    (*cam).samples_per_pixel = 25;
+    (*cam).samples_per_pixel = 100;
 }
 
 fn pixel_sample_square(cam: ptr<function, camera>) -> vec3f {
@@ -413,7 +413,7 @@ const infinity = 3.402823466e+38;
 fn ray_color(r: ray, world: ptr<function, hittable_list>) -> color {
     var rec: hit_record;
     var current_ray: ray = r;
-    var max_depth = 100;
+    var max_depth = 25;
     var c: color = color(1.0, 1.0, 1.0);
 
     // No recusion available
