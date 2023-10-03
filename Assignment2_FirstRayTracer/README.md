@@ -2,13 +2,17 @@
 
 *TODO*: Please edit the following information in your assignment
 
-* Name: 
+* Name: Jonathan Edelman
 * How many hours did it take you to complete this assignment? 
+  * Based on my commit history, at least 43 hours, likely more.
 * Did you collaborate or share ideas with any other students/TAs/Professors? 
+  * No.
 * Did you use any external resources? 
-  * (tbd if any)
-  * (tbd if any)
-  * (tbd if any)
+  * amaiorano's implementation of raytracing in one weekend in WebGPU was referenced for initial setup and some limited design considerations, principally how to actually set up a WebGPU raytracing environment in a fragment shader. This covered most of chapters 3 and 4 of the textbook. Except for random number generation (chapter 8.1) and material abstractions (chapter 10.1), this repo was only used for debugging WebGPU-specific bugs and as output reference for the remaining chapters.
+  * Chrome's and Mozilla's WebGPU developer documentation was regularly referenced.
+  * The [WGSL specification](https://www.w3.org/TR/WGSL/) was regularly referenced.
+  * StackOverflow was occasionally referenced. [This post on downloading files](https://stackoverflow.com/questions/13405129/create-and-save-a-file-with-javascript/53864791#53864791) served as the basis for the non-WebGPU portion of my implementation. No other posts ultimately made a direct contribution.
+  * [This post](https://toji.dev/webgpu-best-practices/buffer-uploads.html) on WebGPU buffer uploads was consulted for understanding how buffers work in WebGPU.
 * (Optional) What was the most interesting part of the assignment? How would you improve this assignment?
 
 # Assignment
