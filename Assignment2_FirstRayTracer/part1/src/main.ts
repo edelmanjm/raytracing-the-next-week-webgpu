@@ -1,5 +1,5 @@
 import Renderer from './renderer';
-import { convertP3 } from './ppm-parser';
+import { convertP3, convertP6 } from './ppm-parser';
 
 class App {
   canvas: HTMLCanvasElement;
@@ -17,7 +17,7 @@ class App {
     const downloadButton = document.createElement('button');
     downloadButton.textContent = 'Download image';
     downloadButton.addEventListener('click', () => {
-      download('image.ppm');
+      download('output.ppm');
     });
 
     // Append the button and static text to the body
@@ -39,8 +39,16 @@ const app = new App(canvas);
 // PPM Requirement
 async function download(filename: string): Promise<void> {
   const element = document.createElement('a');
-  const contents: string = convertP3(app.renderer.frame);
-  element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(contents));
+  // P3
+  // const contents: string = convertP3(app.renderer.frame);
+  // const dataUrl: string = 'data:text/plain;charset=utf-8,';
+  // P6
+  const contents: string = convertP6(app.renderer.frame);
+  const dataUrl: string = 'data:image/x-portable-pixmap;base64,';
+
+  element.setAttribute('href', dataUrl + encodeURIComponent(contents));
+  console.log(dataUrl + encodeURIComponent(contents));
+
   element.setAttribute('download', filename);
 
   element.style.display = 'none';
