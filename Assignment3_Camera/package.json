@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.ts",
-  "type": "commonjs",
+  "type": "module",
   "scripts": {
     "start": "webpack-dev-server --mode development",
     "build": "webpack --mode production"
@@ -12,6 +12,8 @@
   "license": "ISC",
   "devDependencies": {
     "npm-check-updates": "^16.10.15",
+
+    "webgpu-utils": "^0.12.3",
 
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",

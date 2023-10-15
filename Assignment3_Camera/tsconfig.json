@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "lib": ["es2015", "dom", "es5"],
-    "module": "commonjs",
+    "module": "ES2020",
     "target": "es2022",
 
     "strict": true,

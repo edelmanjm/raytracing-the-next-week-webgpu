@@ -1,5 +1,5 @@
-import { getShader } from './shaders/default-shader';
-
+import { getShader } from './shaders/default-shader.js';
+import { makeShaderDataDefinitions, makeStructuredView } from 'webgpu-utils';
 export default class Renderer {
   canvas: HTMLCanvasElement;
 

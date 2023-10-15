@@ -1,8 +1,13 @@
-const path = require('path');
-// const nodeExternals = require('webpack-node-externals');
-const CopyPlugin = require('copy-webpack-plugin');
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-module.exports = {
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// const nodeExternals = require('webpack-node-externals');
+import CopyPlugin from 'copy-webpack-plugin';
+
+export default {
   entry: './part1/src/main.ts',
   module: {
     rules: [
@@ -24,6 +29,9 @@ module.exports = {
   devtool: 'source-map',
   resolve: {
     extensions: ['.tsx', '.ts', '.js'],
+    extensionAlias: {
+      '.js': ['.js', '.ts'],
+    },
     fallback: {
       fs: false,
     },

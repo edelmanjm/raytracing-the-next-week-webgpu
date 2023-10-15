@@ -1,5 +1,5 @@
-import Renderer from './renderer';
-import { convertP3, convertP6 } from './ppm-parser';
+import Renderer from './renderer.js';
+import { convertP3, convertP6 } from './ppm-parser.js';
 
 class App {
   canvas: HTMLCanvasElement;
