@@ -111,31 +111,7 @@ fn random_on_hemisphere(normal: vec3f) -> vec3f {
 // ----------------------------------------------------------------------------
 // Begin materials
 
-alias material_type = u32;
-const MATERIAL_TYPE_LAMBERTIAN : material_type = 0;
-const MATERIAL_TYPE_METAL : material_type = 1;
-const MATERIAL_TYPE_DIELECTRIC : material_type = 2;
-
-struct material_lambertian {
-    albedo: color,
-}
-
-struct material_metal {
-    albedo: color,
-    fuzz: f32,
-}
-
-struct material_dielectric {
-    ior: f32,
-}
-
-struct material {
-    ty: material_type,
-    lambertian: material_lambertian,
-    metal: material_metal,
-    dielectric: material_dielectric,
-    absorption: f32,
-}
+${materials}
 
 fn reflectance(cosine: f32, ref_idx: f32) -> f32 {
     // Use Schlick's approximation for reflectance.
@@ -195,7 +171,7 @@ fn scatter(mat: material, r_in: ray, rec: hit_record, attenuation: ptr<function,
         }
     }
 }
-// End Materials
+// End materials
 // ----------------------------------------------------------------------------
 
 // ----------------------------------------------------------------------------
