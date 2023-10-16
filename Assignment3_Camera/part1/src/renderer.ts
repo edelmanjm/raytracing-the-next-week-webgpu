@@ -1,8 +1,13 @@
 import { getShader, getMaterials } from './shaders/main-shader.js';
 import { makeShaderDataDefinitions, makeStructuredView } from 'webgpu-utils';
+import { Material } from './materials.js';
 
 const defs = makeShaderDataDefinitions(getMaterials());
 const materials = makeStructuredView(defs.storages.materials);
+
+function Copy(src: ArrayBuffer, dst: ArrayBuffer) {
+  new Uint8Array(dst).set(new Uint8Array(src));
+}
 
 export default class Renderer {
   canvas: HTMLCanvasElement;
@@ -26,6 +31,8 @@ export default class Renderer {
   bindGroup: GPUBindGroup;
   // @ts-ignore
   outputBuffer: GPUBuffer;
+  // @ts-ignore
+  materialsBuffer: GPUBuffer;
   // @ts-ignore
   readBuffer: GPUBuffer;
   // @ts-ignore
@@ -65,28 +72,57 @@ export default class Renderer {
       },
     });
 
-    // Allocate a buffer to hold the output
-    const bufferNumElements = width * height;
-    this.outputBuffer = this.device.createBuffer({
-      size: bufferNumElements * Uint32Array.BYTES_PER_ELEMENT,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
-      // mappedAtCreation: true,
-    });
-    // const data = new Uint32Array(this.outputBuffer.getMappedRange());
-    // for (let i = 0; i < bufferNumElements; ++i) {
-    //     data[i] = 0xFF0000FF;
-    // }
-    // this.outputBuffer.unmap();
+    // Output and read buffers
+    {
+      const bufferNumElements = width * height;
+      this.outputBuffer = this.device.createBuffer({
+        size: bufferNumElements * Uint32Array.BYTES_PER_ELEMENT,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+        // mappedAtCreation: true,
+      });
+      // const data = new Uint32Array(this.outputBuffer.getMappedRange());
+      // for (let i = 0; i < bufferNumElements; ++i) {
+      //     data[i] = 0xFF0000FF;
+      // }
+      // this.outputBuffer.unmap();
 
-    // Get a GPU buffer for reading in an unmapped state.
-    this.readBuffer = this.device.createBuffer({
-      size: bufferNumElements * Uint32Array.BYTES_PER_ELEMENT,
-      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-    });
+      // Get a GPU buffer for reading in an unmapped state.
+      this.readBuffer = this.device.createBuffer({
+        size: bufferNumElements * Uint32Array.BYTES_PER_ELEMENT,
+        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+      });
+    }
+
+    // Material buffer
+    {
+      // Remember to update the size of the array when adding/removing materials!
+      materials.set([
+        // Scene 0
+        Material.createLambertian({ albedo: [0.0, 1.0, 0.0] }, 0.5), // Lambertian green
+        Material.createLambertian({ albedo: [1.0, 0.0, 0.0] }, 0.1), // Lambertian red
+        Material.createMetal({ albedo: [0.3, 0.3, 0.5], fuzz: 0.0 }, 0.0), // Metal blue-grey glossy
+        Material.createMetal({ albedo: [0.3, 0.3, 0.5], fuzz: 0.5 }, 0.0), // Metal blue-grey rough
+        Material.createDielectric({ ior: 1.5 }, 0.2), // Dielectric
+        // Scene 1
+        // TODO randomized materials in a way that's not painful
+        // Material.createLambertian({ albedo: [0.5, 0.5, 0.5] }, 0.5), // Ground
+      ]);
+
+      this.materialsBuffer = this.device.createBuffer({
+        size: materials.arrayBuffer.byteLength,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+        mappedAtCreation: true,
+      });
+      Copy(materials.arrayBuffer, this.materialsBuffer.getMappedRange());
+      this.materialsBuffer.unmap();
+    }
 
     this.bindGroup = this.device.createBindGroup({
       layout: this.pipeline.getBindGroupLayout(0),
-      entries: [{ binding: 0, resource: { buffer: this.outputBuffer } }],
+      entries: [
+        { binding: 0, resource: { buffer: this.outputBuffer } },
+        { binding: 1, resource: { buffer: this.materialsBuffer } },
+      ],
     });
 
     await this.onResize();

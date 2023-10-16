@@ -1,3 +1,11 @@
+// ----------------------------------------------------------------------------
+// Color
+
+alias color = vec3f;
+// ----------------------------------------------------------------------------
+
+alias material_index = u32;
+
 alias material_type = u32;
 const MATERIAL_TYPE_LAMBERTIAN : material_type = 0;
 const MATERIAL_TYPE_METAL : material_type = 1;
@@ -25,4 +33,4 @@ struct material {
 }
 
 @group(0) @binding(1)
-var<storage> materials: array<material>;
+var<storage> materials: array<material, 5>;
