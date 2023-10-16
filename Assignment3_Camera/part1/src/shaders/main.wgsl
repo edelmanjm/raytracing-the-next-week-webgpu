@@ -293,9 +293,6 @@ fn hit_hittable_list(r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hi
     return hit_anything;
 }
 
-@group(0) @binding(3)
-var<storage> test: array<u32>;
-
 // End hittable objects
 // ----------------------------------------------------------------------------
 
@@ -325,23 +322,35 @@ struct camera {
     defocus_disk_v: vec3f, // Defocus disk vertical radius
 }
 
-fn camera_initialize(cam: ptr<function, camera>, vfov: f32, lookfrom: vec3f, lookat: vec3f, vup: vec3f, defocus_angle: f32, focus_dist: f32) {
+struct camera_initialize_parameters {
+    vfov: f32,
+    lookfrom: vec3f,
+    lookat: vec3f,
+    vup: vec3f,
+    defocus_angle: f32,
+    focus_dist: f32
+}
+
+@group(0) @binding(3)
+var<uniform> camera_ip: camera_initialize_parameters;
+
+fn camera_initialize(cam: ptr<function, camera>, p: camera_initialize_parameters) {
     (*cam).width = ${width};
     (*cam).height = ${height};
-    (*cam).origin = lookfrom;
-    (*cam).defocus_angle = defocus_angle;
-    (*cam).focus_dist = focus_dist;
+    (*cam).origin = p.lookfrom;
+    (*cam).defocus_angle = p.defocus_angle;
+    (*cam).focus_dist = p.focus_dist;
 
     const aspect_ratio: f32 = ${width} / ${height};
 
-    let focal_length = length(lookfrom - lookat);
-    let h = tan(vfov / 2);
+    let focal_length = length(p.lookfrom - p.lookat);
+    let h = tan(p.vfov / 2);
     let viewport_height = 2 * h * focal_length;
     let viewport_width = aspect_ratio * viewport_height;
 
     // Calculate the u,v,w unit basis vectors for the camera coordinate frame.
-    (*cam).w = normalize(lookfrom - lookat);
-    (*cam).u = normalize(cross(vup, (*cam).w));
+    (*cam).w = normalize(p.lookfrom - p.lookat);
+    (*cam).u = normalize(cross(p.vup, (*cam).w));
     (*cam).v = cross((*cam).w, (*cam).u);
 
     // Calculate the vectors across the horizontal and down the vertical viewport edges.
@@ -357,7 +366,7 @@ fn camera_initialize(cam: ptr<function, camera>, vfov: f32, lookfrom: vec3f, loo
     (*cam).pixel00_loc = viewport_upper_left + 0.5 * ((*cam).pixel_delta_u + (*cam).pixel_delta_v);
 
     // Calculate the camera defocus disk basis vectors.
-    let defocus_radius = focus_dist * tan(defocus_angle / 2);
+    let defocus_radius = p.focus_dist * tan(p.defocus_angle / 2);
     (*cam).defocus_disk_u = (*cam).u * defocus_radius;
     (*cam).defocus_disk_v = (*cam).v * defocus_radius;
 
@@ -485,7 +494,7 @@ fn main(
         switch (scene_index) {
             case 0: {
                 // Camera Requirement
-                camera_initialize(&cam, radians(45), vec3(-2, 2, 1), vec3(0, 0, -1), vec3(0, 1, 0), radians(10.0), 3.4);
+                camera_initialize(&cam, camera_ip);
             }
             default: {
 

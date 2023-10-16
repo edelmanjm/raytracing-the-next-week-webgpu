@@ -1,7 +1,9 @@
 import { getShader } from './shaders/main-shader.js';
 import { makeShaderDataDefinitions, makeStructuredView } from 'webgpu-utils';
-import { Material } from './materials.js';
-import { Sphere, HittableList } from './hittable-list.js';
+import { Material } from './copyable/materials.js';
+import { Sphere, HittableList } from './copyable/hittable-list.js';
+import { CameraInitializeParameters } from './copyable/camera-initialize-parameters.js';
+import { glMatrix } from 'gl-matrix';
 
 function Copy(src: ArrayBuffer, dst: ArrayBuffer) {
   new Uint8Array(dst).set(new Uint8Array(src));
@@ -34,6 +36,8 @@ export default class Renderer {
   // @ts-ignore
   worldBuffer: GPUBuffer;
   // @ts-ignore
+  cameraIpBuffer: GPUBuffer;
+  // @ts-ignore
   readBuffer: GPUBuffer;
   // @ts-ignore
   numGroups: number;
@@ -64,7 +68,6 @@ export default class Renderer {
 
     const code: string = getShader(wgSize, width, height, materials.length);
     const defs = makeShaderDataDefinitions(code);
-    const worldView = makeStructuredView(defs.uniforms.world);
 
     // Material buffer
     {
@@ -82,6 +85,8 @@ export default class Renderer {
 
     // World buffer
     {
+      const worldView = makeStructuredView(defs.uniforms.world);
+
       let spheres: Sphere[] = [
         { center: [0.0, 0.0, -1.0], radius: 0.5, mat: 0 },
         { center: [0.0, -100.5, -1.0], radius: 100, mat: 1 },
@@ -101,6 +106,30 @@ export default class Renderer {
       this.worldBuffer.unmap();
     }
 
+    // Camera parameters buffer
+    {
+      const cameraIpView = makeStructuredView(defs.uniforms.camera_ip);
+
+      cameraIpView.set(
+        new CameraInitializeParameters(
+          glMatrix.toRadian(45),
+          [-2, 2, 1],
+          [0, 0, -1],
+          [0, 1, 0],
+          glMatrix.toRadian(10),
+          3.4,
+        ),
+      );
+
+      this.cameraIpBuffer = this.device.createBuffer({
+        size: cameraIpView.arrayBuffer.byteLength,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_SRC,
+        mappedAtCreation: true,
+      });
+      Copy(cameraIpView.arrayBuffer, this.cameraIpBuffer.getMappedRange());
+      this.cameraIpBuffer.unmap();
+    }
+
     this.pipeline = this.device.createComputePipeline({
       layout: 'auto',
       compute: {
@@ -117,6 +146,7 @@ export default class Renderer {
         { binding: 0, resource: { buffer: this.outputBuffer } },
         { binding: 1, resource: { buffer: this.materialsBuffer } },
         { binding: 2, resource: { buffer: this.worldBuffer } },
+        { binding: 3, resource: { buffer: this.cameraIpBuffer } },
       ],
     });
   }
