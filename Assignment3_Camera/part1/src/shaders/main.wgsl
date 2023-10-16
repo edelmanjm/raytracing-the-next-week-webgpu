@@ -513,7 +513,7 @@ fn main(
 //                // Camera Requirement
 //                camera_initialize(&cam, radians(20), vec3(13, 2, 3), vec3(0, 0, 0), vec3(0, 1, 0), radians(0.6), 10.0);
 //            }
-//        }
+        }
 
         let offset = global_invocation_id.x;
         var c: color = render(&cam, &world, offset);
