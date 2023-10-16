@@ -1,10 +1,6 @@
 import { getShader } from './shaders/main-shader.js';
 import { makeShaderDataDefinitions, makeStructuredView } from 'webgpu-utils';
-import { Material } from './copyable/materials.js';
-import { Sphere, HittableList } from './copyable/hittable-list.js';
-import { CameraInitializeParameters } from './copyable/camera-initialize-parameters.js';
-import { glMatrix } from 'gl-matrix';
-
+import { Scene, ThreeSphere } from './scenes.js';
 function Copy(src: ArrayBuffer, dst: ArrayBuffer) {
   new Uint8Array(dst).set(new Uint8Array(src));
 }
@@ -44,6 +40,8 @@ export default class Renderer {
   // @ts-ignore
   frame: ImageData;
 
+  scene: Scene = new ThreeSphere();
+
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
   }
@@ -54,17 +52,7 @@ export default class Renderer {
   }
 
   updatePipeline(wgSize: number, width: number, height: number) {
-    let materials = [
-      // Scene 0
-      Material.createLambertian({ albedo: [0.0, 1.0, 0.0] }, 0.5), // Lambertian green
-      Material.createLambertian({ albedo: [1.0, 0.0, 0.0] }, 0.1), // Lambertian red
-      Material.createMetal({ albedo: [0.3, 0.3, 0.5], fuzz: 0.0 }, 0.0), // Metal blue-grey glossy
-      Material.createMetal({ albedo: [0.3, 0.3, 0.5], fuzz: 0.5 }, 0.0), // Metal blue-grey rough
-      Material.createDielectric({ ior: 1.5 }, 0.2), // Dielectric
-      // Scene 1
-      // TODO randomized materials in a way that's not painful
-      // Material.createLambertian({ albedo: [0.5, 0.5, 0.5] }, 0.5), // Ground
-    ];
+    const materials = this.scene.getMaterials();
 
     const code: string = getShader(wgSize, width, height, materials.length);
     const defs = makeShaderDataDefinitions(code);
@@ -87,15 +75,7 @@ export default class Renderer {
     {
       const worldView = makeStructuredView(defs.uniforms.world);
 
-      let spheres: Sphere[] = [
-        { center: [0.0, 0.0, -1.0], radius: 0.5, mat: 0 },
-        { center: [0.0, -100.5, -1.0], radius: 100, mat: 1 },
-        { center: [-1.0, 0.0, -1.0], radius: 0.5, mat: 4 },
-        { center: [1.0, 0.0, -1.0], radius: 0.5, mat: 3 },
-        { center: [0.0, 1.0, -2.0], radius: 1.0, mat: 2 },
-      ];
-
-      worldView.set(new HittableList(spheres));
+      worldView.set(this.scene.getWorld());
 
       this.worldBuffer = this.device.createBuffer({
         size: worldView.arrayBuffer.byteLength,
@@ -110,16 +90,7 @@ export default class Renderer {
     {
       const cameraIpView = makeStructuredView(defs.uniforms.camera_ip);
 
-      cameraIpView.set(
-        new CameraInitializeParameters(
-          glMatrix.toRadian(45),
-          [-2, 2, 1],
-          [0, 0, -1],
-          [0, 1, 0],
-          glMatrix.toRadian(10),
-          3.4,
-        ),
-      );
+      cameraIpView.set(this.scene.getCameraInitializationParameters());
 
       this.cameraIpBuffer = this.device.createBuffer({
         size: cameraIpView.arrayBuffer.byteLength,
