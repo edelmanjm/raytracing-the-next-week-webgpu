@@ -193,48 +193,41 @@ export default class Renderer {
     let commandBuffers = Array<GPUCommandBuffer>();
 
     // Run the compute shader
-    {
-      const computeEncoder = this.device.createCommandEncoder();
+    const encoder = this.device.createCommandEncoder();
 
-      const pass = computeEncoder.beginComputePass();
-      pass.setPipeline(this.pipeline);
-      pass.setBindGroup(0, this.bindGroup);
-      pass.dispatchWorkgroups(this.numGroups);
-      pass.end();
+    const pass = encoder.beginComputePass();
+    pass.setPipeline(this.pipeline);
+    pass.setBindGroup(0, this.bindGroup);
+    pass.dispatchWorkgroups(this.numGroups);
+    pass.end();
 
-      commandBuffers.push(computeEncoder.finish());
-    }
+    // Copy output from compute shader to canvas
+    const colorTexture = this.context.getCurrentTexture();
+    const imageCopyBuffer: GPUImageCopyBuffer = {
+      buffer: this.outputBuffer,
+      rowsPerImage: this.canvas.height,
+      bytesPerRow: this.canvas.width * 4,
+    };
+    const imageCopyTexture: GPUImageCopyTexture = {
+      texture: colorTexture,
+    };
+    const extent: GPUExtent3D = {
+      width: this.canvas.width,
+      height: this.canvas.height,
+    };
+    encoder.copyBufferToTexture(imageCopyBuffer, imageCopyTexture, extent);
 
-    {
-      const renderEncoder = this.device.createCommandEncoder();
+    // From https://developer.chrome.com/articles/gpu-compute/.
+    // Encode commands for copying buffer to buffer.
+    encoder.copyBufferToBuffer(
+      imageCopyBuffer.buffer,
+      0,
+      this.readBuffer,
+      0,
+      this.canvas.width * this.canvas.height * Uint32Array.BYTES_PER_ELEMENT,
+    );
 
-      const colorTexture = this.context.getCurrentTexture();
-      const imageCopyBuffer: GPUImageCopyBuffer = {
-        buffer: this.outputBuffer,
-        rowsPerImage: this.canvas.height,
-        bytesPerRow: this.canvas.width * 4,
-      };
-      const imageCopyTexture: GPUImageCopyTexture = {
-        texture: colorTexture,
-      };
-      const extent: GPUExtent3D = {
-        width: this.canvas.width,
-        height: this.canvas.height,
-      };
-      renderEncoder.copyBufferToTexture(imageCopyBuffer, imageCopyTexture, extent);
-
-      // From https://developer.chrome.com/articles/gpu-compute/.
-      // Encode commands for copying buffer to buffer.
-      renderEncoder.copyBufferToBuffer(
-        imageCopyBuffer.buffer,
-        0,
-        this.readBuffer,
-        0,
-        this.canvas.width * this.canvas.height * Uint32Array.BYTES_PER_ELEMENT,
-      );
-
-      commandBuffers.push(renderEncoder.finish());
-    }
+    commandBuffers.push(encoder.finish());
 
     this.queue.submit(commandBuffers);
 
