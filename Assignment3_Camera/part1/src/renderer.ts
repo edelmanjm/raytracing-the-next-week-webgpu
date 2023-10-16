@@ -1,9 +1,11 @@
-import { getShader, getMaterials } from './shaders/main-shader.js';
+import { getShader } from './shaders/main-shader.js';
 import { makeShaderDataDefinitions, makeStructuredView } from 'webgpu-utils';
 import { Material } from './materials.js';
+import { Sphere, HittableList } from './hittable-list.js';
 
-const defs = makeShaderDataDefinitions(getMaterials());
+const defs = makeShaderDataDefinitions(getShader(0, 0, 0));
 const materials = makeStructuredView(defs.storages.materials);
+const world = makeStructuredView(defs.storages.world);
 
 function Copy(src: ArrayBuffer, dst: ArrayBuffer) {
   new Uint8Array(dst).set(new Uint8Array(src));
@@ -33,6 +35,8 @@ export default class Renderer {
   outputBuffer: GPUBuffer;
   // @ts-ignore
   materialsBuffer: GPUBuffer;
+  // @ts-ignore
+  worldBuffer: GPUBuffer;
   // @ts-ignore
   readBuffer: GPUBuffer;
   // @ts-ignore
@@ -117,11 +121,33 @@ export default class Renderer {
       this.materialsBuffer.unmap();
     }
 
+    // World buffer
+    {
+      let spheres: Sphere[] = [
+        { center: [0.0, 0.0, -1.0], radius: 0.5, mat: 0 },
+        { center: [0.0, -100.5, -1.0], radius: 100, mat: 1 },
+        { center: [-1.0, 0.0, -1.0], radius: 0.5, mat: 4 },
+        { center: [1.0, 0.0, -1.0], radius: 0.5, mat: 3 },
+        { center: [0.0, 1.0, -2.0], radius: 1.0, mat: 2 },
+      ];
+
+      world.set(new HittableList(spheres));
+
+      this.worldBuffer = this.device.createBuffer({
+        size: world.arrayBuffer.byteLength,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+        mappedAtCreation: true,
+      });
+      Copy(world.arrayBuffer, this.worldBuffer.getMappedRange());
+      this.worldBuffer.unmap();
+    }
+
     this.bindGroup = this.device.createBindGroup({
       layout: this.pipeline.getBindGroupLayout(0),
       entries: [
         { binding: 0, resource: { buffer: this.outputBuffer } },
         { binding: 1, resource: { buffer: this.materialsBuffer } },
+        { binding: 2, resource: { buffer: this.worldBuffer } },
       ],
     });
 

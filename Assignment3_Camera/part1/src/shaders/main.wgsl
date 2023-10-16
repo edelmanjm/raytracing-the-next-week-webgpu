@@ -14,6 +14,12 @@ fn ray_at(r: ray, t: f32) -> vec3f {
 // ----------------------------------------------------------------------------
 
 // ----------------------------------------------------------------------------
+// Color
+
+alias color = vec3f;
+// ----------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------
 // Begin utility functions
 fn length_squared(v: vec3f) -> f32 {
     let l = length(v);
@@ -105,7 +111,36 @@ fn random_on_hemisphere(normal: vec3f) -> vec3f {
 // ----------------------------------------------------------------------------
 // Begin materials
 
-${materials}
+alias material_index = u32;
+
+alias material_type = u32;
+const MATERIAL_TYPE_LAMBERTIAN : material_type = 0;
+const MATERIAL_TYPE_METAL : material_type = 1;
+const MATERIAL_TYPE_DIELECTRIC : material_type = 2;
+
+struct material_lambertian {
+    albedo: color,
+}
+
+struct material_metal {
+    albedo: color,
+    fuzz: f32,
+}
+
+struct material_dielectric {
+    ior: f32,
+}
+
+struct material {
+    ty: material_type,
+    lambertian: material_lambertian,
+    metal: material_metal,
+    dielectric: material_dielectric,
+    absorption: f32,
+}
+
+@group(0) @binding(1)
+var<storage> materials: array<material, 5>;
 
 fn reflectance(cosine: f32, ref_idx: f32) -> f32 {
     // Use Schlick's approximation for reflectance.
@@ -118,7 +153,8 @@ fn reflectance(cosine: f32, ref_idx: f32) -> f32 {
 fn scatter(mat_i: material_index, r_in: ray, rec: hit_record, attenuation: ptr<function, color>, scattered: ptr<function, ray>) -> bool {
     let mat = materials[mat_i];
     switch (mat.ty) {
-        case MATERIAL_TYPE_LAMBERTIAN {
+        // case MATERIAL_TYPE_LAMBERTIAN: {
+        case 0: {
             var scatter_direction = rec.normal + random_unit_vector();
 
             if (near_zero(scatter_direction)) {
@@ -129,7 +165,8 @@ fn scatter(mat_i: material_index, r_in: ray, rec: hit_record, attenuation: ptr<f
             (*attenuation) = mat.lambertian.albedo * r_in.strength;
             return true;
         }
-        case MATERIAL_TYPE_METAL {
+        // case MATERIAL_TYPE_METAL: {
+        case 1: {
             let reflected: vec3f = reflect(normalize(r_in.direction), rec.normal);
             (*scattered) = ray(rec.p,
                                reflected + mat.metal.fuzz * random_unit_vector(),
@@ -137,7 +174,8 @@ fn scatter(mat_i: material_index, r_in: ray, rec: hit_record, attenuation: ptr<f
             (*attenuation) = mat.metal.albedo * r_in.strength;
             return dot((*scattered).direction, rec.normal) > 0;
         }
-        case MATERIAL_TYPE_DIELECTRIC {
+        // case MATERIAL_TYPE_DIELECTRIC: {
+        case 2: {
             (*attenuation) = color(1.0, 1.0, 1.0) * r_in.strength;
             var refraction_ratio: f32;
             if (rec.front_face) {
@@ -161,7 +199,7 @@ fn scatter(mat_i: material_index, r_in: ray, rec: hit_record, attenuation: ptr<f
             (*scattered) = ray(rec.p, direction, r_in.strength * (1.0 - mat.absorption));
             return true;
         }
-        default {
+        default: {
             return false;
         }
     }
@@ -235,18 +273,16 @@ struct hittable_list {
     spheres_size: u32,
 }
 
-fn hittable_list_add_sphere(list: ptr<function, hittable_list>, s: sphere) {
-    (*list).spheres[(*list).spheres_size] = s;
-    (*list).spheres_size += 1;
-}
+@group(0) @binding(2)
+var<storage> world: hittable_list;
 
-fn hit_hittable_list(list: ptr<function, hittable_list>, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hit_record>) -> bool {
+fn hit_hittable_list(r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hit_record>) -> bool {
     var temp_rec: hit_record;
     var hit_anything: bool = false;
     var closest_so_far: f32 = ray_tmax;
 
-    for (var i: u32 = 0; i < (*list).spheres_size; i++) {
-        if (hit_sphere((*list).spheres[i], r, ray_tmin, closest_so_far, &temp_rec)) {
+    for (var i: u32 = 0; i < world.spheres_size; i++) {
+        if (hit_sphere(world.spheres[i], r, ray_tmin, closest_so_far, &temp_rec)) {
             hit_anything = true;
             closest_so_far = temp_rec.t;
             (*rec) = temp_rec;
@@ -354,7 +390,7 @@ fn get_ray(cam: ptr<function, camera>, i: f32, j: f32) -> ray {
     return ray(ray_origin, ray_direction, 1.0);
 }
 
-fn render(cam: ptr<function, camera>, world: ptr<function, hittable_list>, offset: u32) -> color {
+fn render(cam: ptr<function, camera>, offset: u32) -> color {
     // Compute current x,y
     let x = f32(offset % (*cam).width);
     let y = f32((*cam).height) - f32(offset / (*cam).width); // Flip Y so Y+ is up
@@ -363,7 +399,7 @@ fn render(cam: ptr<function, camera>, world: ptr<function, hittable_list>, offse
     var pixel_color = color(0,0,0);
     for (var sample: u32 = 0; sample < (*cam).samples_per_pixel; sample += 1) {
         let r: ray = get_ray(cam, x, y);
-        pixel_color += ray_color(r, world);
+        pixel_color += ray_color(r);
     }
 
     // Divide the color by the number of samples.
@@ -381,7 +417,7 @@ var<storage, read_write> output : array<u32>;
 
 const infinity = 3.402823466e+38;
 
-fn ray_color(r: ray, world: ptr<function, hittable_list>) -> color {
+fn ray_color(r: ray) -> color {
     var rec: hit_record;
     var current_ray: ray = r;
     var max_depth = 25;
@@ -389,7 +425,7 @@ fn ray_color(r: ray, world: ptr<function, hittable_list>) -> color {
 
     // No recusion available
     for (var depth = 0; depth < max_depth; depth += 1) {
-        if (hit_hittable_list(world, current_ray, 0.001, infinity, &rec)) {
+        if (hit_hittable_list(current_ray, 0.001, infinity, &rec)) {
             var scattered: ray;
             var attenuation: color;
             if (scatter(rec.mat, current_ray, rec, &attenuation, &scattered)) {
@@ -436,22 +472,18 @@ fn main(
         init_rand(global_invocation_id.x, vec4(vec3f(global_invocation_id), 1.0));
 
         // World
-        var world: hittable_list;
+//        var world: hittable_list;
 
         var cam: camera;
 
         let scene_index = 0;
         switch (scene_index) {
-            case 0, default: {
-                // Sphere Requirement
-                hittable_list_add_sphere(&world, sphere(vec3f(0.0, 0.0, -1.0), 0.5, 0));
-                hittable_list_add_sphere(&world, sphere(vec3f(0.0, -100.5, -1.0), 100, 1));
-                hittable_list_add_sphere(&world, sphere(vec3f(-1.0, 0.0, -1.0), 0.5, 4));
-                hittable_list_add_sphere(&world, sphere(vec3f(1.0, 0.0, -1.0), 0.5, 3));
-                hittable_list_add_sphere(&world, sphere(vec3f(0.0, 1.0, -2.0), 1.0, 2));
-
+            case 0: {
                 // Camera Requirement
                 camera_initialize(&cam, radians(45), vec3(-2, 2, 1), vec3(0, 0, -1), vec3(0, 1, 0), radians(10.0), 3.4);
+            }
+            default: {
+
             }
 //            case 1: {
 //                // Materials Requirement
@@ -516,7 +548,9 @@ fn main(
         }
 
         let offset = global_invocation_id.x;
-        var c: color = render(&cam, &world, offset);
+        // Currently WGSL does not allow passing pointer-to-storage-buffer or pointer-to-uniform-buffer into user-declared helper functions.
+        // See https://github.com/openxla/iree/issues/10906#issuecomment-1563362180
+        var c: color = render(&cam, offset);
         write_color(offset, c, cam.samples_per_pixel);
 }
 // End main
