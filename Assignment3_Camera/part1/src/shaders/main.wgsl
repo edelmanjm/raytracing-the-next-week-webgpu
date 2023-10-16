@@ -136,11 +136,12 @@ struct material {
     lambertian: material_lambertian,
     metal: material_metal,
     dielectric: material_dielectric,
-    absorption: f32,
+    // Alignment is required to use as a uniform
+    @align(16) absorption: f32,
 }
 
 @group(0) @binding(1)
-var<storage> materials: array<material>;
+var<uniform> materials: array<material, 5>;
 
 fn reflectance(cosine: f32, ref_idx: f32) -> f32 {
     // Use Schlick's approximation for reflectance.

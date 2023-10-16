@@ -4,7 +4,7 @@ import { Material } from './materials.js';
 import { Sphere, HittableList } from './hittable-list.js';
 
 const defs = makeShaderDataDefinitions(getShader(0, 0, 0));
-const materials = makeStructuredView(defs.storages.materials);
+const materials = makeStructuredView(defs.uniforms.materials);
 const world = makeStructuredView(defs.uniforms.world);
 
 function Copy(src: ArrayBuffer, dst: ArrayBuffer) {
@@ -111,7 +111,7 @@ export default class Renderer {
 
       this.materialsBuffer = this.device.createBuffer({
         size: materials.arrayBuffer.byteLength,
-        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_SRC,
         mappedAtCreation: true,
       });
       Copy(materials.arrayBuffer, this.materialsBuffer.getMappedRange());
