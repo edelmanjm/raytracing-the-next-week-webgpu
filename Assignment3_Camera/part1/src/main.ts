@@ -28,7 +28,7 @@ class App {
   }
 
   async run() {
-    await this.renderer.initializeAPI();
+    await this.renderer.init();
     await this.renderer.render();
   }
 }

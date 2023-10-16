@@ -44,47 +44,12 @@ export default class Renderer {
     this.canvas = canvas;
   }
 
-  async initializeAPI(): Promise<void> {
-    const entry: GPU = navigator.gpu;
-    if (!entry) {
-      throw Error('WebGPU may not be supported in your browser');
-    }
+  async init() {
+    await this.initializeAPI();
+    await this.onResize();
+  }
 
-    const maybeAdapter = await entry.requestAdapter();
-    if (maybeAdapter == null) {
-      throw Error('Could not acquire GPU adapter; please check your settings');
-    }
-
-    this.adapter = maybeAdapter;
-    this.device = await this.adapter.requestDevice();
-    this.queue = this.device.queue;
-
-    const wgSize = 256;
-    const width = this.canvas.width;
-    const height = this.canvas.height;
-    this.numGroups = (width * height) / wgSize;
-
-    // Output and read buffers
-    {
-      const bufferNumElements = width * height;
-      this.outputBuffer = this.device.createBuffer({
-        size: bufferNumElements * Uint32Array.BYTES_PER_ELEMENT,
-        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
-        // mappedAtCreation: true,
-      });
-      // const data = new Uint32Array(this.outputBuffer.getMappedRange());
-      // for (let i = 0; i < bufferNumElements; ++i) {
-      //     data[i] = 0xFF0000FF;
-      // }
-      // this.outputBuffer.unmap();
-
-      // Get a GPU buffer for reading in an unmapped state.
-      this.readBuffer = this.device.createBuffer({
-        size: bufferNumElements * Uint32Array.BYTES_PER_ELEMENT,
-        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-      });
-    }
-
+  updatePipeline(wgSize: number, width: number, height: number) {
     let materials = [
       // Scene 0
       Material.createLambertian({ albedo: [0.0, 1.0, 0.0] }, 0.5), // Lambertian green
@@ -154,8 +119,50 @@ export default class Renderer {
         { binding: 2, resource: { buffer: this.worldBuffer } },
       ],
     });
+  }
 
-    await this.onResize();
+  async initializeAPI(): Promise<void> {
+    const entry: GPU = navigator.gpu;
+    if (!entry) {
+      throw Error('WebGPU may not be supported in your browser');
+    }
+
+    const maybeAdapter = await entry.requestAdapter();
+    if (maybeAdapter == null) {
+      throw Error('Could not acquire GPU adapter; please check your settings');
+    }
+
+    this.adapter = maybeAdapter;
+    this.device = await this.adapter.requestDevice();
+    this.queue = this.device.queue;
+
+    const wgSize = 256;
+    const width = this.canvas.width;
+    const height = this.canvas.height;
+    this.numGroups = (width * height) / wgSize;
+
+    // Output and read buffers
+    {
+      const bufferNumElements = width * height;
+      this.outputBuffer = this.device.createBuffer({
+        size: bufferNumElements * Uint32Array.BYTES_PER_ELEMENT,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+        // mappedAtCreation: true,
+      });
+      // const data = new Uint32Array(this.outputBuffer.getMappedRange());
+      // for (let i = 0; i < bufferNumElements; ++i) {
+      //     data[i] = 0xFF0000FF;
+      // }
+      // this.outputBuffer.unmap();
+
+      // Get a GPU buffer for reading in an unmapped state.
+      this.readBuffer = this.device.createBuffer({
+        size: bufferNumElements * Uint32Array.BYTES_PER_ELEMENT,
+        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+      });
+    }
+
+    this.updatePipeline(wgSize, width, height);
   }
 
   async onResize(): Promise<void> {
