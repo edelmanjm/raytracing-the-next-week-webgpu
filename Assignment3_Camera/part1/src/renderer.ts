@@ -1,6 +1,6 @@
 import { getShader } from './shaders/main-shader.js';
 import { makeShaderDataDefinitions, makeStructuredView } from 'webgpu-utils';
-import { Scene, ThreeSphere } from './scenes.js';
+import { FinalScene, Scene, ThreeSphere } from './scenes.js';
 function Copy(src: ArrayBuffer, dst: ArrayBuffer) {
   new Uint8Array(dst).set(new Uint8Array(src));
 }
@@ -52,9 +52,15 @@ export default class Renderer {
   }
 
   updatePipeline(wgSize: number, width: number, height: number) {
-    const materials = this.scene.getMaterials();
+    const materials = this.scene.materials;
 
-    const code: string = getShader(wgSize, width, height, materials.length);
+    const code: string = getShader(
+      wgSize,
+      width,
+      height,
+      materials.length,
+      this.scene.world.spheres_size,
+    );
     const defs = makeShaderDataDefinitions(code);
 
     // Material buffer
@@ -75,7 +81,7 @@ export default class Renderer {
     {
       const worldView = makeStructuredView(defs.uniforms.world);
 
-      worldView.set(this.scene.getWorld());
+      worldView.set(this.scene.world);
 
       this.worldBuffer = this.device.createBuffer({
         size: worldView.arrayBuffer.byteLength,
@@ -90,7 +96,7 @@ export default class Renderer {
     {
       const cameraIpView = makeStructuredView(defs.uniforms.camera_ip);
 
-      cameraIpView.set(this.scene.getCameraInitializationParameters());
+      cameraIpView.set(this.scene.cameraInitializationParameters);
 
       this.cameraIpBuffer = this.device.createBuffer({
         size: cameraIpView.arrayBuffer.byteLength,
