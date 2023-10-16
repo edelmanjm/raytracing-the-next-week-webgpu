@@ -3,10 +3,6 @@ import { makeShaderDataDefinitions, makeStructuredView } from 'webgpu-utils';
 import { Material } from './materials.js';
 import { Sphere, HittableList } from './hittable-list.js';
 
-const defs = makeShaderDataDefinitions(getShader(0, 0, 0));
-const materials = makeStructuredView(defs.uniforms.materials);
-const world = makeStructuredView(defs.uniforms.world);
-
 function Copy(src: ArrayBuffer, dst: ArrayBuffer) {
   new Uint8Array(dst).set(new Uint8Array(src));
 }
@@ -89,32 +85,33 @@ export default class Renderer {
       });
     }
 
+    let materials = [
+      // Scene 0
+      Material.createLambertian({ albedo: [0.0, 1.0, 0.0] }, 0.5), // Lambertian green
+      Material.createLambertian({ albedo: [1.0, 0.0, 0.0] }, 0.1), // Lambertian red
+      Material.createMetal({ albedo: [0.3, 0.3, 0.5], fuzz: 0.0 }, 0.0), // Metal blue-grey glossy
+      Material.createMetal({ albedo: [0.3, 0.3, 0.5], fuzz: 0.5 }, 0.0), // Metal blue-grey rough
+      Material.createDielectric({ ior: 1.5 }, 0.2), // Dielectric
+      // Scene 1
+      // TODO randomized materials in a way that's not painful
+      // Material.createLambertian({ albedo: [0.5, 0.5, 0.5] }, 0.5), // Ground
+    ];
+
+    const code: string = getShader(wgSize, width, height, materials.length);
+    const defs = makeShaderDataDefinitions(code);
+    const worldView = makeStructuredView(defs.uniforms.world);
+
     // Material buffer
     {
-      let data = [
-        // Scene 0
-        Material.createLambertian({ albedo: [0.0, 1.0, 0.0] }, 0.5), // Lambertian green
-        Material.createLambertian({ albedo: [1.0, 0.0, 0.0] }, 0.1), // Lambertian red
-        Material.createMetal({ albedo: [0.3, 0.3, 0.5], fuzz: 0.0 }, 0.0), // Metal blue-grey glossy
-        Material.createMetal({ albedo: [0.3, 0.3, 0.5], fuzz: 0.5 }, 0.0), // Metal blue-grey rough
-        Material.createDielectric({ ior: 1.5 }, 0.2), // Dielectric
-        // Scene 1
-        // TODO randomized materials in a way that's not painful
-        // Material.createLambertian({ albedo: [0.5, 0.5, 0.5] }, 0.5), // Ground
-      ];
-
-      const materials = makeStructuredView(
-        defs.storages.materials,
-        new ArrayBuffer(data.length * defs.structs.material.size),
-      );
-      materials.set(data);
+      const materialView = makeStructuredView(defs.uniforms.materials);
+      materialView.set(materials);
 
       this.materialsBuffer = this.device.createBuffer({
-        size: materials.arrayBuffer.byteLength,
+        size: materialView.arrayBuffer.byteLength,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_SRC,
         mappedAtCreation: true,
       });
-      Copy(materials.arrayBuffer, this.materialsBuffer.getMappedRange());
+      Copy(materialView.arrayBuffer, this.materialsBuffer.getMappedRange());
       this.materialsBuffer.unmap();
     }
 
@@ -128,21 +125,23 @@ export default class Renderer {
         { center: [0.0, 1.0, -2.0], radius: 1.0, mat: 2 },
       ];
 
-      world.set(new HittableList(spheres));
+      worldView.set(new HittableList(spheres));
 
       this.worldBuffer = this.device.createBuffer({
-        size: world.arrayBuffer.byteLength,
+        size: worldView.arrayBuffer.byteLength,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_SRC,
         mappedAtCreation: true,
       });
-      Copy(world.arrayBuffer, this.worldBuffer.getMappedRange());
+      Copy(worldView.arrayBuffer, this.worldBuffer.getMappedRange());
       this.worldBuffer.unmap();
     }
 
     this.pipeline = this.device.createComputePipeline({
       layout: 'auto',
       compute: {
-        module: this.device.createShaderModule({ code: getShader(wgSize, width, height) }),
+        module: this.device.createShaderModule({
+          code: code,
+        }),
         entryPoint: 'main',
       },
     });

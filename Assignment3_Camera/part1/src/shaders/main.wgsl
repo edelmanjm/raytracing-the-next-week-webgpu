@@ -141,7 +141,7 @@ struct material {
 }
 
 @group(0) @binding(1)
-var<uniform> materials: array<material, 5>;
+var<uniform> materials: array<material, ${materialCount}>;
 
 fn reflectance(cosine: f32, ref_idx: f32) -> f32 {
     // Use Schlick's approximation for reflectance.
