@@ -5,7 +5,7 @@ import { Sphere, HittableList } from './hittable-list.js';
 
 const defs = makeShaderDataDefinitions(getShader(0, 0, 0));
 const materials = makeStructuredView(defs.storages.materials);
-const world = makeStructuredView(defs.storages.world);
+const world = makeStructuredView(defs.uniforms.world);
 
 function Copy(src: ArrayBuffer, dst: ArrayBuffer) {
   new Uint8Array(dst).set(new Uint8Array(src));
@@ -67,14 +67,6 @@ export default class Renderer {
     const width = this.canvas.width;
     const height = this.canvas.height;
     this.numGroups = (width * height) / wgSize;
-
-    this.pipeline = this.device.createComputePipeline({
-      layout: 'auto',
-      compute: {
-        module: this.device.createShaderModule({ code: getShader(wgSize, width, height) }),
-        entryPoint: 'main',
-      },
-    });
 
     // Output and read buffers
     {
@@ -140,12 +132,20 @@ export default class Renderer {
 
       this.worldBuffer = this.device.createBuffer({
         size: world.arrayBuffer.byteLength,
-        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_SRC,
         mappedAtCreation: true,
       });
       Copy(world.arrayBuffer, this.worldBuffer.getMappedRange());
       this.worldBuffer.unmap();
     }
+
+    this.pipeline = this.device.createComputePipeline({
+      layout: 'auto',
+      compute: {
+        module: this.device.createShaderModule({ code: getShader(wgSize, width, height) }),
+        entryPoint: 'main',
+      },
+    });
 
     this.bindGroup = this.device.createBindGroup({
       layout: this.pipeline.getBindGroupLayout(0),

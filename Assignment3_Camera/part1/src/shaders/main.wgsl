@@ -274,7 +274,7 @@ struct hittable_list {
 }
 
 @group(0) @binding(2)
-var<storage> world: hittable_list;
+var<uniform> world: hittable_list;
 
 fn hit_hittable_list(r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hit_record>) -> bool {
     var temp_rec: hit_record;
