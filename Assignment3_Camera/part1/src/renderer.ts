@@ -99,8 +99,7 @@ export default class Renderer {
 
     // Material buffer
     {
-      // Remember to update the size of the array when adding/removing materials!
-      materials.set([
+      let data = [
         // Scene 0
         Material.createLambertian({ albedo: [0.0, 1.0, 0.0] }, 0.5), // Lambertian green
         Material.createLambertian({ albedo: [1.0, 0.0, 0.0] }, 0.1), // Lambertian red
@@ -110,7 +109,13 @@ export default class Renderer {
         // Scene 1
         // TODO randomized materials in a way that's not painful
         // Material.createLambertian({ albedo: [0.5, 0.5, 0.5] }, 0.5), // Ground
-      ]);
+      ];
+
+      const materials = makeStructuredView(
+        defs.storages.materials,
+        new ArrayBuffer(data.length * defs.structs.material.size),
+      );
+      materials.set(data);
 
       this.materialsBuffer = this.device.createBuffer({
         size: materials.arrayBuffer.byteLength,

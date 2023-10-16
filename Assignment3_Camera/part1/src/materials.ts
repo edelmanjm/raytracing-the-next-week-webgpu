@@ -1,11 +1,11 @@
 import { vec3 } from 'gl-matrix';
 
 interface MaterialLambertian {
-  albedo: vec3;
+  albedo: number[];
 }
 
 interface MaterialMetal {
-  albedo: vec3;
+  albedo: number[];
   fuzz: number;
 }
 

@@ -140,7 +140,7 @@ struct material {
 }
 
 @group(0) @binding(1)
-var<storage> materials: array<material, 5>;
+var<storage> materials: array<material>;
 
 fn reflectance(cosine: f32, ref_idx: f32) -> f32 {
     // Use Schlick's approximation for reflectance.
@@ -291,6 +291,10 @@ fn hit_hittable_list(r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hi
 
     return hit_anything;
 }
+
+@group(0) @binding(3)
+var<storage> test: array<u32>;
+
 // End hittable objects
 // ----------------------------------------------------------------------------
 
