@@ -282,7 +282,7 @@ export default class Renderer {
   }
 
   frameSamplesPerPixel = {
-    max: 1, // Max per frame (constant)
+    max: 10, // Max per frame (constant)
     left: 0, // How many are left to process this frame
     done: 0, // How many processed so far
   };

@@ -485,13 +485,11 @@ fn u32_to_color(c: u32) -> color {
 
 fn write_color(offset: u32, pixel_color: color) {
     // Gamma correction
-    // Gamma Requirement
     var c = sqrt(pixel_color);
 
     var last = u32_to_color(output[offset]);
     var w = config.weight;
     output[offset] = color_to_u32(last * (1 - w) + c * w);
-//    output[offset] = color_to_u32(c);
 }
 
 @compute @workgroup_size(${wgSize})
