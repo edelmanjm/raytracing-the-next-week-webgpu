@@ -54,6 +54,7 @@ export default class Renderer {
     rand_seed: [Math.random(), Math.random(), Math.random(), Math.random()],
     weight: 0,
   };
+  infiniteSamples: boolean = false;
   scene: Scene = new ThreeSphere();
   pane: Pane = new Pane();
   dirty: boolean = true;
@@ -166,10 +167,9 @@ export default class Renderer {
   }
 
   initializeTweakPane() {
-    let update = async () => {
+    let update = () => {
       this.updatePipeline(this.scene, false);
       this.dirty = true;
-      // await this.render();
     };
 
     this.scene = new ThreeSphere();
@@ -182,9 +182,9 @@ export default class Renderer {
       ],
       value: this.scene,
     }) as ListBladeApi<Scene>;
-    sceneBlade.on('change', async ev => {
+    sceneBlade.on('change', ev => {
       this.scene = ev.value;
-      await update();
+      update();
     });
 
     let samplesBinding = this.pane.addBinding(this.raytracingConfig, 'samples_per_pixel', {
@@ -193,9 +193,21 @@ export default class Renderer {
       max: 250,
       step: 1,
     });
-    samplesBinding.on('change', async ev => {
+    samplesBinding.on('change', ev => {
       this.raytracingConfig.samples_per_pixel = ev.value;
-      await update();
+      update();
+    });
+
+    let infiniteSamplesBinding = this.pane.addBinding(
+      { infinite: this.infiniteSamples },
+      'infinite',
+      {
+        label: 'Infinite Samples',
+      },
+    );
+    infiniteSamplesBinding.on('change', ev => {
+      this.infiniteSamples = ev.value;
+      update();
     });
 
     let depthBinding = this.pane.addBinding(this.raytracingConfig, 'max_depth', {
@@ -204,9 +216,9 @@ export default class Renderer {
       max: 20,
       step: 1,
     });
-    depthBinding.on('change', async ev => {
+    depthBinding.on('change', ev => {
       this.raytracingConfig.max_depth = ev.value;
-      await update();
+      update();
     });
   }
 
@@ -298,7 +310,11 @@ export default class Renderer {
     const encoder = this.device.createCommandEncoder();
 
     if (this.dirty) {
-      this.frameSamplesPerPixel.left = this.raytracingConfig.samples_per_pixel;
+      if (this.infiniteSamples) {
+        this.frameSamplesPerPixel.left = Number.MAX_VALUE;
+      } else {
+        this.frameSamplesPerPixel.left = this.raytracingConfig.samples_per_pixel;
+      }
       this.frameSamplesPerPixel.done = 0;
       // Clear output buffer to start accumulating into it
       this.dirty = false;
