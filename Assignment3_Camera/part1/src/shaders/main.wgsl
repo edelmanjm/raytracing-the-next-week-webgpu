@@ -424,7 +424,8 @@ fn render(cam: ptr<function, camera>, offset: u32, samples_per_pixel: u32) -> co
 
 struct raytracer_config {
     samples_per_pixel: u32,
-    @align(16) max_depth: u32
+    max_depth: u32,
+    rand_seed: vec4f,
 }
 
 @group(0) @binding(4)
@@ -486,7 +487,7 @@ fn write_color(offset: u32, pixel_color: color) {
 fn main(
     @builtin(global_invocation_id) global_invocation_id : vec3<u32>,
     ) {
-        init_rand(global_invocation_id.x, vec4(vec3f(global_invocation_id), 1.0));
+        init_rand(global_invocation_id.x, config.rand_seed);
 
         var cam: camera;
         camera_initialize(&cam, camera_ip);

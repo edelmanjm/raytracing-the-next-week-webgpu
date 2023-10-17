@@ -47,6 +47,7 @@ export default class Renderer {
   raytracingConfig: RaytracingConfig = {
     samples_per_pixel: 100,
     max_depth: 25,
+    rand_seed: [Math.random(), Math.random(), Math.random(), Math.random()],
   };
   scene: Scene = new ThreeSphere();
   pane: Pane = new Pane();
