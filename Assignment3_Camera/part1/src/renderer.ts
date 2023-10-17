@@ -48,6 +48,7 @@ export default class Renderer {
     samples_per_pixel: 100,
     max_depth: 25,
   };
+  scene: Scene = new ThreeSphere();
   pane: Pane = new Pane();
 
   constructor(canvas: HTMLCanvasElement) {
@@ -153,58 +154,47 @@ export default class Renderer {
   }
 
   initializeTweakPane(wgSize: number, width: number, height: number) {
+    let update = async () => {
+      this.updatePipeline(wgSize, width, height, this.scene);
+      await this.render();
+    };
+
+    this.scene = new ThreeSphere();
     let sceneBlade = this.pane.addBlade({
       view: 'list',
       label: 'scene',
       options: [
-        { text: 'Scene 0', value: new ThreeSphere() },
+        { text: 'Scene 0', value: this.scene },
         { text: 'Scene 1', value: new FinalScene() },
       ],
-      value: 'LDG',
+      value: this.scene,
     }) as ListBladeApi<Scene>;
     sceneBlade.on('change', async ev => {
-      this.updatePipeline(wgSize, width, height, ev.value);
-      await this.render();
+      this.scene = ev.value;
+      await update();
     });
-    // let input = this.pane.addInput(this.config, 'scene', {
-    //   label: 'Scene',
-    //   options: {
-    //     'Image 11: Shiny metal': 11,
-    //     'Image 12: Fuzzed metal': 12,
-    //     'Image 16: A hollow glass sphere': 16,
-    //     'Image 18: A distant view': 18,
-    //     'Image 19: Image 19: Zooming in': 19,
-    //     'Image 20: Spheres with depth-of-field': 20,
-    //   },
-    // });
-    // input.on('change', ev => {
-    //   this.updateScene();
-    //   this.updatePipeline(wgSize); // TODO: queue.copy
-    // });
-    //
-    // input = this.pane.addInput(this.config, 'samplesPerPixel', {
-    //   label: 'Samples Per Pixel',
-    //   min: 1,
-    //   max: 100,
-    //   step: 1,
-    // });
-    // input.on('change', ev => {
-    //   this.raytracerConfig.samples_per_pixel(ev.value);
-    //   this.updatePipeline(wgSize); // TODO: queue.copy
-    // });
-    //
-    // input = this.pane.addInput(this.config, 'maxDepth', {
-    //   label: 'Max Ray Depth',
-    //   min: 2,
-    //   max: 20,
-    //   step: 1,
-    // });
-    // input.on('change', ev => {
-    //   this.raytracerConfig.max_depth(ev.value);
-    //   this.updatePipeline(wgSize); // TODO: queue.copy
-    // });
-    //
-    // this.config.scene = 11;
+
+    let samplesBinding = this.pane.addBinding(this.raytracingConfig, 'samples_per_pixel', {
+      label: 'Samples Per Pixel',
+      // min: 1,
+      // max: 250,
+      step: 1,
+    });
+    samplesBinding.on('change', async ev => {
+      this.raytracingConfig.samples_per_pixel = ev.value;
+      await update();
+    });
+
+    let depthBinding = this.pane.addBinding(this.raytracingConfig, 'max_depth', {
+      label: 'Max Ray Depth',
+      // min: 2,
+      // max: 20,
+      step: 1,
+    });
+    depthBinding.on('change', async ev => {
+      this.raytracingConfig.max_depth = ev.value;
+      await update();
+    });
   }
 
   async initializeAPI(): Promise<void> {
@@ -249,7 +239,7 @@ export default class Renderer {
     }
 
     this.initializeTweakPane(wgSize, width, height);
-    this.updatePipeline(wgSize, width, height, new ThreeSphere());
+    this.updatePipeline(wgSize, width, height, this.scene);
   }
 
   async onResize(): Promise<void> {
