@@ -213,7 +213,7 @@ export default class Renderer {
     let depthBinding = this.pane.addBinding(this.raytracingConfig, 'max_depth', {
       label: 'Max Ray Depth',
       min: 2,
-      max: 20,
+      max: 100,
       step: 1,
     });
     depthBinding.on('change', ev => {
