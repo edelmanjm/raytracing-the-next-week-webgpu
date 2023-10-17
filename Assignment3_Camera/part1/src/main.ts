@@ -58,7 +58,6 @@ async function download(filename: string): Promise<void> {
   const dataUrl: string = 'data:image/x-portable-pixmap;base64,';
 
   element.setAttribute('href', dataUrl + encodeURIComponent(contents));
-  console.log(dataUrl + encodeURIComponent(contents));
 
   element.setAttribute('download', filename);
 
