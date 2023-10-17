@@ -164,10 +164,10 @@ export default class Renderer {
     this.scene = new ThreeSphere();
     let sceneBlade = this.pane.addBlade({
       view: 'list',
-      label: 'scene',
+      label: 'Scene',
       options: [
-        { text: 'Scene 0', value: this.scene },
-        { text: 'Scene 1', value: new FinalScene() },
+        { text: 'Scene 0: Depth of field example', value: this.scene },
+        { text: 'Scene 1: Many random spheres (final scene)', value: new FinalScene() },
       ],
       value: this.scene,
     }) as ListBladeApi<Scene>;
