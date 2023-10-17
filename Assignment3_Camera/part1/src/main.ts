@@ -29,7 +29,18 @@ class App {
 
   async run() {
     await this.renderer.init();
-    await this.renderer.render();
+
+    const updateLoop = async (timeStampMs: DOMHighResTimeStamp) => {
+      // Compute delta time in seconds
+      const dt = (timeStampMs - this.lastTimeStampMs) / 1000;
+      this.lastTimeStampMs = timeStampMs;
+      await this.renderer.render(dt);
+      requestAnimationFrame(updateLoop);
+    };
+
+    // Start the update loop
+    this.lastTimeStampMs = performance.now();
+    await updateLoop(this.lastTimeStampMs);
   }
 }
 

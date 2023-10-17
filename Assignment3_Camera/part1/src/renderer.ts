@@ -50,6 +50,7 @@ export default class Renderer {
   };
   scene: Scene = new ThreeSphere();
   pane: Pane = new Pane();
+  dirty: boolean = true;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -156,7 +157,8 @@ export default class Renderer {
   initializeTweakPane(wgSize: number, width: number, height: number) {
     let update = async () => {
       this.updatePipeline(wgSize, width, height, this.scene);
-      await this.render();
+      this.dirty = true;
+      // await this.render();
     };
 
     this.scene = new ThreeSphere();
@@ -176,8 +178,8 @@ export default class Renderer {
 
     let samplesBinding = this.pane.addBinding(this.raytracingConfig, 'samples_per_pixel', {
       label: 'Samples Per Pixel',
-      // min: 1,
-      // max: 250,
+      min: 1,
+      max: 250,
       step: 1,
     });
     samplesBinding.on('change', async ev => {
@@ -187,8 +189,8 @@ export default class Renderer {
 
     let depthBinding = this.pane.addBinding(this.raytracingConfig, 'max_depth', {
       label: 'Max Ray Depth',
-      // min: 2,
-      // max: 20,
+      min: 2,
+      max: 20,
       step: 1,
     });
     depthBinding.on('change', async ev => {
@@ -273,55 +275,63 @@ export default class Renderer {
     return rgbBuffer;
   }
 
-  async render() {
+  async render(dt: number) {
     let commandBuffers = Array<GPUCommandBuffer>();
+
+    if (this.pipeline === undefined) {
+      return;
+    }
 
     // Run the compute shader
     const encoder = this.device.createCommandEncoder();
 
-    const pass = encoder.beginComputePass();
-    pass.setPipeline(this.pipeline);
-    pass.setBindGroup(0, this.bindGroup);
-    pass.dispatchWorkgroups(this.numGroups);
-    pass.end();
+    if (this.dirty) {
+      const pass = encoder.beginComputePass();
+      pass.setPipeline(this.pipeline);
+      pass.setBindGroup(0, this.bindGroup);
+      pass.dispatchWorkgroups(this.numGroups);
+      pass.end();
 
-    // Copy output from compute shader to canvas
-    const colorTexture = this.context.getCurrentTexture();
-    const imageCopyBuffer: GPUImageCopyBuffer = {
-      buffer: this.outputBuffer,
-      rowsPerImage: this.canvas.height,
-      bytesPerRow: this.canvas.width * 4,
-    };
-    const imageCopyTexture: GPUImageCopyTexture = {
-      texture: colorTexture,
-    };
-    const extent: GPUExtent3D = {
-      width: this.canvas.width,
-      height: this.canvas.height,
-    };
-    encoder.copyBufferToTexture(imageCopyBuffer, imageCopyTexture, extent);
+      // Copy output from compute shader to canvas
+      const colorTexture = this.context.getCurrentTexture();
+      const imageCopyBuffer: GPUImageCopyBuffer = {
+        buffer: this.outputBuffer,
+        rowsPerImage: this.canvas.height,
+        bytesPerRow: this.canvas.width * 4,
+      };
+      const imageCopyTexture: GPUImageCopyTexture = {
+        texture: colorTexture,
+      };
+      const extent: GPUExtent3D = {
+        width: this.canvas.width,
+        height: this.canvas.height,
+      };
+      encoder.copyBufferToTexture(imageCopyBuffer, imageCopyTexture, extent);
 
-    // From https://developer.chrome.com/articles/gpu-compute/.
-    // Encode commands for copying buffer to buffer.
-    encoder.copyBufferToBuffer(
-      imageCopyBuffer.buffer,
-      0,
-      this.readBuffer,
-      0,
-      this.canvas.width * this.canvas.height * Uint32Array.BYTES_PER_ELEMENT,
-    );
+      // From https://developer.chrome.com/articles/gpu-compute/.
+      // Encode commands for copying buffer to buffer.
+      encoder.copyBufferToBuffer(
+        imageCopyBuffer.buffer,
+        0,
+        this.readBuffer,
+        0,
+        this.canvas.width * this.canvas.height * Uint32Array.BYTES_PER_ELEMENT,
+      );
 
-    commandBuffers.push(encoder.finish());
+      commandBuffers.push(encoder.finish());
 
-    this.queue.submit(commandBuffers);
+      this.queue.submit(commandBuffers);
 
-    // Read buffer.
-    await this.readBuffer.mapAsync(GPUMapMode.READ);
-    this.frame = new ImageData(
-      this.bgraToRgba(new Uint8ClampedArray(this.readBuffer.getMappedRange())),
-      this.canvas.width,
-      this.canvas.height,
-    );
-    this.readBuffer.unmap();
+      // Read buffer.
+      await this.readBuffer.mapAsync(GPUMapMode.READ);
+      this.frame = new ImageData(
+        this.bgraToRgba(new Uint8ClampedArray(this.readBuffer.getMappedRange())),
+        this.canvas.width,
+        this.canvas.height,
+      );
+      this.readBuffer.unmap();
+
+      this.dirty = false;
+    }
   }
 }
