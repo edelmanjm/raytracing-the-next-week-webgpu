@@ -2,13 +2,18 @@
 
 *TODO*: Please edit the following information in your assignment
 
-* Name: 
+* Name: Jonathan Edelman
 * How many hours did it take you to complete this assignment? 
+  * Approximately 30 hours.
 * Did you collaborate or share ideas with any other students/TAs/Professors? 
+  * No.
 * Did you use any external resources? 
-  * (tbd if any)
-  * (tbd if any)
-  * (tbd if any)
+  * amaiorano's implementation of raytracing in one weekend in WebGPU was referenced, primarily in choosing which parameters to pass in via uniform/storage buffers. I oped for a very different scene setup structure, as well as an alternative method for calculating offsets. Per-sample rendering was copied relatively directly due to the complexity of this schema.
+  * [webgpufundamentals.org](https://webgpufundamentals.org/) was referenced, particularly for understanding storage and uniform buffers.
+  * I worked with the author of webgpu-utils to address [an issue in the library.](https://github.com/greggman/webgpu-utils/issues/3)
+  * Chrome's and Mozilla's WebGPU developer documentation was regularly referenced.
+  * The [WGSL specification](https://www.w3.org/TR/WGSL/) was regularly referenced.
+  * [Tweakpane's documentation](https://cocopon.github.io/tweakpane/) was referenced for setting up Tweakpane.
 * (Optional) What was the most interesting part of the assignment? How would you improve this assignment?
 
 # Assignment
