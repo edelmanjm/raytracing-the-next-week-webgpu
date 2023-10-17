@@ -3,6 +3,7 @@ import { makeShaderDataDefinitions, makeStructuredView } from 'webgpu-utils';
 import { FinalScene, Scene, ThreeSphere } from './scenes.js';
 import { RaytracingConfig } from './copyable/raytracing-config.js';
 import { ListBladeApi, Pane } from 'tweakpane';
+import { vec4 } from 'gl-matrix';
 function Copy(src: ArrayBuffer, dst: ArrayBuffer) {
   new Uint8Array(dst).set(new Uint8Array(src));
 }
@@ -51,6 +52,7 @@ export default class Renderer {
     samples_per_pixel: 100,
     max_depth: 25,
     rand_seed: [Math.random(), Math.random(), Math.random(), Math.random()],
+    weight: 0,
   };
   scene: Scene = new ThreeSphere();
   pane: Pane = new Pane();
@@ -279,6 +281,12 @@ export default class Renderer {
     return rgbBuffer;
   }
 
+  frameSamplesPerPixel = {
+    max: 1, // Max per frame (constant)
+    left: 0, // How many are left to process this frame
+    done: 0, // How many processed so far
+  };
+
   async render(dt: number) {
     let commandBuffers = Array<GPUCommandBuffer>();
 
@@ -290,11 +298,45 @@ export default class Renderer {
     const encoder = this.device.createCommandEncoder();
 
     if (this.dirty) {
+      this.frameSamplesPerPixel.left = this.raytracingConfig.samples_per_pixel;
+      this.frameSamplesPerPixel.done = 0;
+      // Clear output buffer to start accumulating into it
+      this.dirty = false;
+    }
+
+    if (this.frameSamplesPerPixel.left > 0) {
+      let currSamplesPerPixel = Math.min(
+        this.frameSamplesPerPixel.left,
+        this.frameSamplesPerPixel.max,
+      );
+      // Compute the amount this frame will contribute to the final pixel as a ratio of how many samples have
+      // been processed so far.
+      let weight = currSamplesPerPixel / (this.frameSamplesPerPixel.done + currSamplesPerPixel);
+      // console.log(`currSamplesPerPixel: ${currSamplesPerPixel}, weight: ${weight}`)
+
+      this.raytracingConfig = {
+        max_depth: this.raytracingConfig.max_depth,
+        samples_per_pixel: currSamplesPerPixel,
+        rand_seed: vec4.fromValues(Math.random(), Math.random(), Math.random(), Math.random()),
+        weight: weight,
+      };
+
+      this.updatePipeline(this.scene, true);
+
       const pass = encoder.beginComputePass();
       pass.setPipeline(this.pipeline);
       pass.setBindGroup(0, this.bindGroup);
       pass.dispatchWorkgroups(this.numGroups);
       pass.end();
+
+      this.frameSamplesPerPixel.left -= currSamplesPerPixel;
+      this.frameSamplesPerPixel.done += currSamplesPerPixel;
+
+      // const pass = encoder.beginComputePass();
+      // pass.setPipeline(this.pipeline);
+      // pass.setBindGroup(0, this.bindGroup);
+      // pass.dispatchWorkgroups(this.numGroups);
+      // pass.end();
 
       // Copy output from compute shader to canvas
       const colorTexture = this.context.getCurrentTexture();
@@ -312,7 +354,7 @@ export default class Renderer {
       };
       encoder.copyBufferToTexture(imageCopyBuffer, imageCopyTexture, extent);
 
-      // From https://developer.chrome.com/articles/gpu-compute/.
+      // // From https://developer.chrome.com/articles/gpu-compute/.
       // Encode commands for copying buffer to buffer.
       encoder.copyBufferToBuffer(
         imageCopyBuffer.buffer,
@@ -334,8 +376,6 @@ export default class Renderer {
         this.canvas.height,
       );
       this.readBuffer.unmap();
-
-      this.dirty = false;
     }
   }
 }

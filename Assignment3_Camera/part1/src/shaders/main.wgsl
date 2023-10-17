@@ -426,6 +426,7 @@ struct raytracer_config {
     samples_per_pixel: u32,
     max_depth: u32,
     rand_seed: vec4f,
+    weight: f32,
 }
 
 @group(0) @binding(4)
@@ -475,12 +476,22 @@ fn color_to_u32(c : color) -> u32 {
     // return (a << 24) | (b << 16) | (g << 8) | r;
 }
 
+fn u32_to_color(c: u32) -> color {
+    let r = f32((c >> 16) & 0xff) / 255.0;
+    let g = f32((c >> 8) & 0xff) / 255.0;
+    let b = f32((c >> 0) & 0xff) / 255.0;
+    return color(r, g, b);
+}
+
 fn write_color(offset: u32, pixel_color: color) {
     // Gamma correction
     // Gamma Requirement
     var c = sqrt(pixel_color);
 
-    output[offset] = color_to_u32(c);
+    var last = u32_to_color(output[offset]);
+    var w = config.weight;
+    output[offset] = color_to_u32(last * (1 - w) + c * w);
+//    output[offset] = color_to_u32(c);
 }
 
 @compute @workgroup_size(${wgSize})
