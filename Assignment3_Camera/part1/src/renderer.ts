@@ -1,7 +1,8 @@
 import { getShader } from './shaders/main-shader.js';
 import { makeShaderDataDefinitions, makeStructuredView } from 'webgpu-utils';
-import { Scene, ThreeSphere } from './scenes.js';
+import { FinalScene, Scene, ThreeSphere } from './scenes.js';
 import { RaytracingConfig } from './copyable/raytracing-config.js';
+import { ListBladeApi, Pane } from 'tweakpane';
 function Copy(src: ArrayBuffer, dst: ArrayBuffer) {
   new Uint8Array(dst).set(new Uint8Array(src));
 }
@@ -43,7 +44,11 @@ export default class Renderer {
   // @ts-ignore
   frame: ImageData;
 
-  scene: Scene = new ThreeSphere();
+  raytracingConfig: RaytracingConfig = {
+    samples_per_pixel: 100,
+    max_depth: 25,
+  };
+  pane: Pane = new Pane();
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -54,15 +59,15 @@ export default class Renderer {
     await this.onResize();
   }
 
-  updatePipeline(wgSize: number, width: number, height: number) {
-    const materials = this.scene.materials;
+  updatePipeline(wgSize: number, width: number, height: number, scene: Scene) {
+    const materials = scene.materials;
 
     const code: string = getShader(
       wgSize,
       width,
       height,
       materials.length,
-      this.scene.world.spheres_size,
+      scene.world.spheres_size,
     );
     const defs = makeShaderDataDefinitions(code);
 
@@ -84,7 +89,7 @@ export default class Renderer {
     {
       const worldView = makeStructuredView(defs.uniforms.world);
 
-      worldView.set(this.scene.world);
+      worldView.set(scene.world);
 
       this.worldBuffer = this.device.createBuffer({
         size: worldView.arrayBuffer.byteLength,
@@ -99,7 +104,7 @@ export default class Renderer {
     {
       const cameraIpView = makeStructuredView(defs.uniforms.camera_ip);
 
-      cameraIpView.set(this.scene.cameraInitializationParameters);
+      cameraIpView.set(scene.cameraInitializationParameters);
 
       this.cameraIpBuffer = this.device.createBuffer({
         size: cameraIpView.arrayBuffer.byteLength,
@@ -114,11 +119,7 @@ export default class Renderer {
     {
       const configView = makeStructuredView(defs.uniforms.config);
 
-      const raytracingConfig: RaytracingConfig = {
-        samples_per_pixel: 100,
-        max_depth: 25,
-      };
-      configView.set(raytracingConfig);
+      configView.set(this.raytracingConfig);
 
       this.raytracingConfigBuffer = this.device.createBuffer({
         size: configView.arrayBuffer.byteLength,
@@ -149,6 +150,61 @@ export default class Renderer {
         { binding: 4, resource: { buffer: this.raytracingConfigBuffer } },
       ],
     });
+  }
+
+  initializeTweakPane(wgSize: number, width: number, height: number) {
+    let sceneBlade = this.pane.addBlade({
+      view: 'list',
+      label: 'scene',
+      options: [
+        { text: 'Scene 0', value: new ThreeSphere() },
+        { text: 'Scene 1', value: new FinalScene() },
+      ],
+      value: 'LDG',
+    }) as ListBladeApi<Scene>;
+    sceneBlade.on('change', async ev => {
+      this.updatePipeline(wgSize, width, height, ev.value);
+      await this.render();
+    });
+    // let input = this.pane.addInput(this.config, 'scene', {
+    //   label: 'Scene',
+    //   options: {
+    //     'Image 11: Shiny metal': 11,
+    //     'Image 12: Fuzzed metal': 12,
+    //     'Image 16: A hollow glass sphere': 16,
+    //     'Image 18: A distant view': 18,
+    //     'Image 19: Image 19: Zooming in': 19,
+    //     'Image 20: Spheres with depth-of-field': 20,
+    //   },
+    // });
+    // input.on('change', ev => {
+    //   this.updateScene();
+    //   this.updatePipeline(wgSize); // TODO: queue.copy
+    // });
+    //
+    // input = this.pane.addInput(this.config, 'samplesPerPixel', {
+    //   label: 'Samples Per Pixel',
+    //   min: 1,
+    //   max: 100,
+    //   step: 1,
+    // });
+    // input.on('change', ev => {
+    //   this.raytracerConfig.samples_per_pixel(ev.value);
+    //   this.updatePipeline(wgSize); // TODO: queue.copy
+    // });
+    //
+    // input = this.pane.addInput(this.config, 'maxDepth', {
+    //   label: 'Max Ray Depth',
+    //   min: 2,
+    //   max: 20,
+    //   step: 1,
+    // });
+    // input.on('change', ev => {
+    //   this.raytracerConfig.max_depth(ev.value);
+    //   this.updatePipeline(wgSize); // TODO: queue.copy
+    // });
+    //
+    // this.config.scene = 11;
   }
 
   async initializeAPI(): Promise<void> {
@@ -192,7 +248,8 @@ export default class Renderer {
       });
     }
 
-    this.updatePipeline(wgSize, width, height);
+    this.initializeTweakPane(wgSize, width, height);
+    this.updatePipeline(wgSize, width, height, new ThreeSphere());
   }
 
   async onResize(): Promise<void> {
