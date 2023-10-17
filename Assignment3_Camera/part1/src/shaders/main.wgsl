@@ -493,6 +493,11 @@ fn main(
         camera_initialize(&cam, camera_ip);
 
         let offset = global_invocation_id.x;
+        // Skip if out of bounds (TODO: only invoke required number of workgroups)
+        if (offset >= u32(${width * height})) {
+            return;
+        }
+
         // Currently WGSL does not allow passing pointer-to-storage-buffer or pointer-to-uniform-buffer into user-declared helper functions.
         // See https://github.com/openxla/iree/issues/10906#issuecomment-1563362180
         var c: color = render(&cam, offset, config.samples_per_pixel);
