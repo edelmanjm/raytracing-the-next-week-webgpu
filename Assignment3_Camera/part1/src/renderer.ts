@@ -1,9 +1,10 @@
 import { getShader } from './shaders/main-shader.js';
 import { makeShaderDataDefinitions, makeStructuredView } from 'webgpu-utils';
-import { FinalScene, Scene, ThreeSphere } from './scenes.js';
+import { FinalScene, Scene, FourSphere, FourSphereCameraPosition } from './scenes.js';
 import { RaytracingConfig } from './copyable/raytracing-config.js';
 import { ListBladeApi, Pane } from 'tweakpane';
 import { vec4 } from 'gl-matrix';
+
 function Copy(src: ArrayBuffer, dst: ArrayBuffer) {
   new Uint8Array(dst).set(new Uint8Array(src));
 }
@@ -55,7 +56,8 @@ export default class Renderer {
     weight: 0,
   };
   infiniteSamples: boolean = false;
-  scene: Scene = new ThreeSphere();
+  // @ts-ignore
+  scene: Scene;
   pane: Pane = new Pane();
   dirty: boolean = true;
 
@@ -172,14 +174,23 @@ export default class Renderer {
       this.dirty = true;
     };
 
-    this.scene = new ThreeSphere();
+    let fourSphereOptions = [
+      FourSphereCameraPosition.FRONT,
+      FourSphereCameraPosition.WIDE,
+      FourSphereCameraPosition.TELEPHOTO,
+      FourSphereCameraPosition.TOP,
+      FourSphereCameraPosition.REFLECTION_DETAIL,
+    ].map(e => {
+      let scene = new FourSphere(e);
+      return { text: scene.description, value: scene };
+    });
+
+    this.scene = fourSphereOptions[0].value;
+
     let sceneBlade = this.pane.addBlade({
       view: 'list',
       label: 'Scene',
-      options: [
-        { text: 'Scene 0: Depth of field example', value: this.scene },
-        { text: 'Scene 1: Many random spheres (final scene)', value: new FinalScene() },
-      ],
+      options: [...fourSphereOptions, { text: FinalScene.description, value: new FinalScene() }],
       value: this.scene,
     }) as ListBladeApi<Scene>;
     sceneBlade.on('change', ev => {

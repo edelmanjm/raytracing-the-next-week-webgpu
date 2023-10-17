@@ -4,7 +4,6 @@ import { CameraInitializeParameters } from './copyable/camera-initialize-paramet
 import { glMatrix, vec3 } from 'gl-matrix';
 
 export interface Scene {
-  description: string;
   materials: Material[];
   world: HittableList;
   cameraInitializationParameters: CameraInitializeParameters;
@@ -14,8 +13,16 @@ function randomVec3(): vec3 {
   return [Math.random(), Math.random(), Math.random()];
 }
 
-export class ThreeSphere implements Scene {
-  description: string = 'Three spheres or something idk';
+export enum FourSphereCameraPosition {
+  FRONT,
+  WIDE,
+  TELEPHOTO,
+  TOP,
+  REFLECTION_DETAIL,
+}
+
+export class FourSphere implements Scene {
+  description: string;
   materials = [
     Material.createLambertian({ albedo: [0.0, 1.0, 0.0] }, 0.5), // Lambertian green
     Material.createLambertian({ albedo: [1.0, 0.0, 0.0] }, 0.1), // Lambertian red
@@ -32,18 +39,74 @@ export class ThreeSphere implements Scene {
     { center: [0.0, 1.0, -2.0], radius: 1.0, mat: 2 },
   ]);
 
-  cameraInitializationParameters = new CameraInitializeParameters(
-    glMatrix.toRadian(45),
-    [-2, 2, 1],
-    [0, 0, -1],
-    [0, 1, 0],
-    glMatrix.toRadian(10),
-    3.4,
-  );
+  cameraInitializationParameters: CameraInitializeParameters;
+
+  constructor(cam: FourSphereCameraPosition) {
+    this.description = `Scene ${cam}: `;
+
+    switch (cam) {
+      case FourSphereCameraPosition.FRONT:
+      default:
+        this.cameraInitializationParameters = new CameraInitializeParameters(
+          glMatrix.toRadian(50),
+          [0, 2, 3],
+          [0, 1, 0],
+          [0, 1, 0],
+          glMatrix.toRadian(0.1),
+          5,
+        );
+        this.description += 'Front view of four spheres';
+        break;
+      case FourSphereCameraPosition.WIDE:
+        this.cameraInitializationParameters = new CameraInitializeParameters(
+          glMatrix.toRadian(110),
+          [-2, 2, 1],
+          [0, 0, -1],
+          [0, 1, 0],
+          glMatrix.toRadian(1),
+          3.4,
+        );
+        this.description += 'Wide angle view of four spheres';
+        break;
+      case FourSphereCameraPosition.TELEPHOTO:
+        this.cameraInitializationParameters = new CameraInitializeParameters(
+          glMatrix.toRadian(45),
+          [-2, 2, 1],
+          [0, 0, -1],
+          [0, 1, 0],
+          glMatrix.toRadian(10),
+          3.4,
+        );
+        this.description += 'Telephoto view of four spheres with depth of field';
+        break;
+      case FourSphereCameraPosition.TOP:
+        this.cameraInitializationParameters = new CameraInitializeParameters(
+          glMatrix.toRadian(50),
+          [0, 10, 0.1],
+          [0, 0, 0],
+          [0, 1, 0],
+          glMatrix.toRadian(0.1),
+          5,
+        );
+        this.description += 'Top view of three spheres';
+        break;
+      case FourSphereCameraPosition.REFLECTION_DETAIL:
+        this.cameraInitializationParameters = new CameraInitializeParameters(
+          glMatrix.toRadian(15),
+          [0, 2, 3],
+          [0, 1, 0],
+          [0, 1, 0],
+          glMatrix.toRadian(0.1),
+          5,
+        );
+        this.description += 'View of reflection of three spheres';
+        break;
+    }
+  }
 }
 
 export class FinalScene implements Scene {
-  description: string = 'A scene with a bunch of randomly scattered spheres';
+  static description: string = 'Scene 10: Many random spheres (final scene)';
   materials: Material[] = [];
   world: HittableList;
   cameraInitializationParameters = new CameraInitializeParameters(
