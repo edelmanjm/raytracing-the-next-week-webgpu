@@ -1,6 +1,7 @@
 import { getShader } from './shaders/main-shader.js';
 import { makeShaderDataDefinitions, makeStructuredView } from 'webgpu-utils';
-import { FinalScene, Scene, ThreeSphere } from './scenes.js';
+import { Scene, ThreeSphere } from './scenes.js';
+import { RaytracingConfig } from './copyable/raytracing-config.js';
 function Copy(src: ArrayBuffer, dst: ArrayBuffer) {
   new Uint8Array(dst).set(new Uint8Array(src));
 }
@@ -33,6 +34,8 @@ export default class Renderer {
   worldBuffer: GPUBuffer;
   // @ts-ignore
   cameraIpBuffer: GPUBuffer;
+  // @ts-ignore
+  raytracingConfigBuffer: GPUBuffer;
   // @ts-ignore
   readBuffer: GPUBuffer;
   // @ts-ignore
@@ -107,6 +110,25 @@ export default class Renderer {
       this.cameraIpBuffer.unmap();
     }
 
+    // Raytracing config buffer
+    {
+      const configView = makeStructuredView(defs.uniforms.config);
+
+      const raytracingConfig: RaytracingConfig = {
+        samples_per_pixel: 100,
+        max_depth: 25,
+      };
+      configView.set(raytracingConfig);
+
+      this.raytracingConfigBuffer = this.device.createBuffer({
+        size: configView.arrayBuffer.byteLength,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_SRC,
+        mappedAtCreation: true,
+      });
+      Copy(configView.arrayBuffer, this.raytracingConfigBuffer.getMappedRange());
+      this.raytracingConfigBuffer.unmap();
+    }
+
     this.pipeline = this.device.createComputePipeline({
       layout: 'auto',
       compute: {
@@ -124,6 +146,7 @@ export default class Renderer {
         { binding: 1, resource: { buffer: this.materialsBuffer } },
         { binding: 2, resource: { buffer: this.worldBuffer } },
         { binding: 3, resource: { buffer: this.cameraIpBuffer } },
+        { binding: 4, resource: { buffer: this.raytracingConfigBuffer } },
       ],
     });
   }

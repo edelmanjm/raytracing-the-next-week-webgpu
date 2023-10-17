@@ -302,7 +302,6 @@ struct camera {
     height: u32,
     origin: vec3f,
     pixel00_loc: vec3f,
-    samples_per_pixel: u32,
 
     u: vec3f,
     v: vec3f,
@@ -368,8 +367,6 @@ fn camera_initialize(cam: ptr<function, camera>, p: camera_initialize_parameters
     let defocus_radius = p.focus_dist * tan(p.defocus_angle / 2);
     (*cam).defocus_disk_u = (*cam).u * defocus_radius;
     (*cam).defocus_disk_v = (*cam).v * defocus_radius;
-
-    (*cam).samples_per_pixel = 100;
 }
 
 fn pixel_sample_square(cam: ptr<function, camera>) -> vec3f {
@@ -403,20 +400,20 @@ fn get_ray(cam: ptr<function, camera>, i: f32, j: f32) -> ray {
     return ray(ray_origin, ray_direction, 1.0);
 }
 
-fn render(cam: ptr<function, camera>, offset: u32) -> color {
+fn render(cam: ptr<function, camera>, offset: u32, samples_per_pixel: u32) -> color {
     // Compute current x,y
     let x = f32(offset % (*cam).width);
     let y = f32((*cam).height) - f32(offset / (*cam).width); // Flip Y so Y+ is up
 
     // Render
     var pixel_color = color(0,0,0);
-    for (var sample: u32 = 0; sample < (*cam).samples_per_pixel; sample += 1) {
+    for (var sample: u32 = 0; sample < samples_per_pixel; sample += 1) {
         let r: ray = get_ray(cam, x, y);
         pixel_color += ray_color(r);
     }
 
     // Divide the color by the number of samples.
-    pixel_color /= f32((*cam).samples_per_pixel);
+    pixel_color /= f32(samples_per_pixel);
     return pixel_color;
 }
 // End camera
@@ -424,6 +421,14 @@ fn render(cam: ptr<function, camera>, offset: u32) -> color {
 
 // ----------------------------------------------------------------------------
 // Begin main
+
+struct raytracer_config {
+    samples_per_pixel: u32,
+    @align(16) max_depth: u32
+}
+
+@group(0) @binding(4)
+var<uniform> config: raytracer_config;
 
 @group(0) @binding(0)
 var<storage, read_write> output : array<u32>;
@@ -433,11 +438,10 @@ const infinity = 3.402823466e+38;
 fn ray_color(r: ray) -> color {
     var rec: hit_record;
     var current_ray: ray = r;
-    var max_depth = 25;
     var c: color = color(1.0, 1.0, 1.0);
 
     // No recusion available
-    for (var depth = 0; depth < max_depth; depth += 1) {
+    for (var depth: u32 = 0; depth < config.max_depth; depth += 1) {
         if (hit_hittable_list(current_ray, 0.001, infinity, &rec)) {
             var scattered: ray;
             var attenuation: color;
@@ -470,7 +474,7 @@ fn color_to_u32(c : color) -> u32 {
     // return (a << 24) | (b << 16) | (g << 8) | r;
 }
 
-fn write_color(offset: u32, pixel_color: color, samples_per_pixel: u32) {
+fn write_color(offset: u32, pixel_color: color) {
     // Gamma correction
     // Gamma Requirement
     var c = sqrt(pixel_color);
@@ -490,8 +494,8 @@ fn main(
         let offset = global_invocation_id.x;
         // Currently WGSL does not allow passing pointer-to-storage-buffer or pointer-to-uniform-buffer into user-declared helper functions.
         // See https://github.com/openxla/iree/issues/10906#issuecomment-1563362180
-        var c: color = render(&cam, offset);
-        write_color(offset, c, cam.samples_per_pixel);
+        var c: color = render(&cam, offset, config.samples_per_pixel);
+        write_color(offset, c);
 }
 // End main
 // ----------------------------------------------------------------------------
