@@ -40,9 +40,12 @@ export default class Renderer {
   // @ts-ignore
   readBuffer: GPUBuffer;
   // @ts-ignore
-  numGroups: number;
-  // @ts-ignore
   frame: ImageData;
+
+  wgSize = 256;
+  width: number;
+  height: number;
+  numGroups: number;
 
   raytracingConfig: RaytracingConfig = {
     samples_per_pixel: 100,
@@ -55,6 +58,9 @@ export default class Renderer {
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
+    this.width = this.canvas.width;
+    this.height = this.canvas.height;
+    this.numGroups = (this.width * this.height) / this.wgSize;
   }
 
   async init() {
@@ -62,60 +68,62 @@ export default class Renderer {
     await this.onResize();
   }
 
-  updatePipeline(wgSize: number, width: number, height: number, scene: Scene) {
+  updatePipeline(scene: Scene, configOnly: boolean) {
     const materials = scene.materials;
 
     const code: string = getShader(
-      wgSize,
-      width,
-      height,
+      this.wgSize,
+      this.width,
+      this.height,
       materials.length,
       scene.world.spheres_size,
     );
     const defs = makeShaderDataDefinitions(code);
 
-    // Material buffer
-    {
-      const materialView = makeStructuredView(defs.uniforms.materials);
-      materialView.set(materials);
+    if (!configOnly) {
+      // Material buffer
+      {
+        const materialView = makeStructuredView(defs.uniforms.materials);
+        materialView.set(materials);
 
-      this.materialsBuffer = this.device.createBuffer({
-        size: materialView.arrayBuffer.byteLength,
-        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_SRC,
-        mappedAtCreation: true,
-      });
-      Copy(materialView.arrayBuffer, this.materialsBuffer.getMappedRange());
-      this.materialsBuffer.unmap();
-    }
+        this.materialsBuffer = this.device.createBuffer({
+          size: materialView.arrayBuffer.byteLength,
+          usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_SRC,
+          mappedAtCreation: true,
+        });
+        Copy(materialView.arrayBuffer, this.materialsBuffer.getMappedRange());
+        this.materialsBuffer.unmap();
+      }
 
-    // World buffer
-    {
-      const worldView = makeStructuredView(defs.uniforms.world);
+      // World buffer
+      {
+        const worldView = makeStructuredView(defs.uniforms.world);
 
-      worldView.set(scene.world);
+        worldView.set(scene.world);
 
-      this.worldBuffer = this.device.createBuffer({
-        size: worldView.arrayBuffer.byteLength,
-        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_SRC,
-        mappedAtCreation: true,
-      });
-      Copy(worldView.arrayBuffer, this.worldBuffer.getMappedRange());
-      this.worldBuffer.unmap();
-    }
+        this.worldBuffer = this.device.createBuffer({
+          size: worldView.arrayBuffer.byteLength,
+          usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_SRC,
+          mappedAtCreation: true,
+        });
+        Copy(worldView.arrayBuffer, this.worldBuffer.getMappedRange());
+        this.worldBuffer.unmap();
+      }
 
-    // Camera parameters buffer
-    {
-      const cameraIpView = makeStructuredView(defs.uniforms.camera_ip);
+      // Camera parameters buffer
+      {
+        const cameraIpView = makeStructuredView(defs.uniforms.camera_ip);
 
-      cameraIpView.set(scene.cameraInitializationParameters);
+        cameraIpView.set(scene.cameraInitializationParameters);
 
-      this.cameraIpBuffer = this.device.createBuffer({
-        size: cameraIpView.arrayBuffer.byteLength,
-        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_SRC,
-        mappedAtCreation: true,
-      });
-      Copy(cameraIpView.arrayBuffer, this.cameraIpBuffer.getMappedRange());
-      this.cameraIpBuffer.unmap();
+        this.cameraIpBuffer = this.device.createBuffer({
+          size: cameraIpView.arrayBuffer.byteLength,
+          usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_SRC,
+          mappedAtCreation: true,
+        });
+        Copy(cameraIpView.arrayBuffer, this.cameraIpBuffer.getMappedRange());
+        this.cameraIpBuffer.unmap();
+      }
     }
 
     // Raytracing config buffer
@@ -155,9 +163,9 @@ export default class Renderer {
     });
   }
 
-  initializeTweakPane(wgSize: number, width: number, height: number) {
+  initializeTweakPane() {
     let update = async () => {
-      this.updatePipeline(wgSize, width, height, this.scene);
+      this.updatePipeline(this.scene, false);
       this.dirty = true;
       // await this.render();
     };
@@ -215,14 +223,9 @@ export default class Renderer {
     this.device = await this.adapter.requestDevice();
     this.queue = this.device.queue;
 
-    const wgSize = 256;
-    const width = this.canvas.width;
-    const height = this.canvas.height;
-    this.numGroups = (width * height) / wgSize;
-
     // Output and read buffers
     {
-      const bufferNumElements = width * height;
+      const bufferNumElements = this.width * this.height;
       this.outputBuffer = this.device.createBuffer({
         size: bufferNumElements * Uint32Array.BYTES_PER_ELEMENT,
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
@@ -241,8 +244,8 @@ export default class Renderer {
       });
     }
 
-    this.initializeTweakPane(wgSize, width, height);
-    this.updatePipeline(wgSize, width, height, this.scene);
+    this.initializeTweakPane();
+    this.updatePipeline(this.scene, false);
   }
 
   async onResize(): Promise<void> {
