@@ -4,6 +4,7 @@ import { CameraInitializeParameters } from './copyable/camera-initialize-paramet
 import { glMatrix, vec3 } from 'gl-matrix';
 
 export interface Scene {
+  shortName: string;
   materials: Material[];
   world: HittableList;
   cameraInitializationParameters: CameraInitializeParameters;
@@ -22,6 +23,7 @@ export enum FourSphereCameraPosition {
 }
 
 export class FourSphere implements Scene {
+  shortName: string;
   description: string;
   materials = [
     Material.createLambertian({ albedo: [0.0, 1.0, 0.0] }, 0.5), // Lambertian green
@@ -42,6 +44,7 @@ export class FourSphere implements Scene {
   cameraInitializationParameters: CameraInitializeParameters;
 
   constructor(cam: FourSphereCameraPosition) {
+    this.shortName = `output-${cam}`;
     this.description = `Scene ${cam}: `;
 
     switch (cam) {
@@ -106,6 +109,7 @@ export class FourSphere implements Scene {
 }
 
 export class FinalScene implements Scene {
+  shortName = 'output-10';
   static description: string = 'Scene 10: Many random spheres (final scene)';
   materials: Material[] = [];
   world: HittableList;

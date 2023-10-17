@@ -42,14 +42,14 @@ For this assignment, you are going to implement a few new features into your ray
 
 To make a few concrete requirements, your ray tracer will implement the following features.
 
-- [ ] - A positionable camera
+- [x] - A positionable camera
 	- Comment in your code 'Camera Requirement'
-- [ ] - Depth of Field (DoF) (Or as Shirley calls it, Defocus Blur)
+- [x] - Depth of Field (DoF) (Or as Shirley calls it, Defocus Blur)
 	- Comment in your code 'Depth of Field Requirement'
 	- You should demonstrate this by creating multiple objects in your scene (some in the foreground and some in the background)
-- [ ] - Antialiasing using the multi-sampling technique in Shirley
+- [x] - Antialiasing using the multi-sampling technique in Shirley
 	- Comment in your code 'Antialiasing Requirement'
-- [ ] - When running your program, it should automatically generate '5' images labeled: output1.ppm,output2.ppm,output3.ppm,output4.ppm,output5.ppm
+- [x] - When running your program, it should automatically generate '5' images labeled: output1.ppm,output2.ppm,output3.ppm,output4.ppm,output5.ppm
 	- Each of these 5 images should be at a different position. That is, the camera should be looking at your science from a different origin, or otherwise a different target.
 	- Comment in your code 'View Requirement'
 

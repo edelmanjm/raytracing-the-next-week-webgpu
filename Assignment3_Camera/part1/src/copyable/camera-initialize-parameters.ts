@@ -4,6 +4,7 @@ export class CameraInitializeParameters {
   lookfrom: vec3;
   lookat: vec3;
   vup: vec3;
+  // Depth of Field Requirement
   defocus_angle: number;
   focus_dist: number;
 

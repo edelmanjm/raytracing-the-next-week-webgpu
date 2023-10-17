@@ -17,7 +17,7 @@ class App {
     const downloadButton = document.createElement('button');
     downloadButton.textContent = 'Download image';
     downloadButton.addEventListener('click', () => {
-      download('output.ppm');
+      download(this.renderer.scene.shortName + '.ppm');
     });
 
     // Append the button and static text to the body

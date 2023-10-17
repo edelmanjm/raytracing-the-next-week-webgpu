@@ -50,6 +50,7 @@ export default class Renderer {
   numGroups: number;
 
   raytracingConfig: RaytracingConfig = {
+    // Antialiasing Requirement
     samples_per_pixel: 100,
     max_depth: 25,
     rand_seed: [Math.random(), Math.random(), Math.random(), Math.random()],
@@ -115,6 +116,7 @@ export default class Renderer {
         this.worldBuffer.unmap();
       }
 
+      // Camera Requirement
       // Camera parameters buffer
       {
         const cameraIpView = makeStructuredView(defs.uniforms.camera_ip);
@@ -187,6 +189,7 @@ export default class Renderer {
 
     this.scene = fourSphereOptions[0].value;
 
+    // View Requirement
     let sceneBlade = this.pane.addBlade({
       view: 'list',
       label: 'Scene',
