@@ -327,7 +327,6 @@ export default class Renderer {
         this.frameSamplesPerPixel.left = this.raytracingConfig.samples_per_pixel;
       }
       this.frameSamplesPerPixel.done = 0;
-      // Clear output buffer to start accumulating into it
       this.dirty = false;
     }
 
