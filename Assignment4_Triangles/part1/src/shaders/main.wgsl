@@ -266,6 +266,16 @@ fn get_position(v: vertex) -> vec3f {
     return vec3f(v.px, v.py, v.pz);
 }
 
+const MAX_MESH_INDEX_SIZE = 256;
+
+struct mesh {
+    vertices: array<vertex, MAX_MESH_INDEX_SIZE>,
+    verticies_length: u32,
+    // The fourth value is a dummy value for padding due to WGSL alignment requirements for uniforms
+    indices: array<vec4<u32>, MAX_MESH_INDEX_SIZE>,
+    indices_length: u32,
+}
+
 fn hit_sphere(s: sphere, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hit_record>) -> bool {
     let oc = r.origin - s.center;
     let a = length_squared(r.direction);
@@ -338,9 +348,7 @@ fn hit_triangle(v0: vertex, v1: vertex, v2: vertex, r: ray) -> bool {
 
 struct hittable_list {
     spheres: array<sphere, ${sphereCount}>,
-    vertices: array<vertex, ${vertexCount}>,
-    // The fourth value is a dummy value for padding due to WGSL alignment requirements for uniforms
-    indices: array<vec4<u32>, ${indicesCount}>,
+    meshes: array<mesh, ${meshCount}>
 }
 
 @group(0) @binding(2)
@@ -359,14 +367,17 @@ fn hit_hittable_list(r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hi
         }
     }
 
-    for (var i: u32 = 0; i < ${indicesCount}; i++) {
-        let i0 = world.indices[i][0];
-        let i1 = world.indices[i][1];
-        let i2 = world.indices[i][2];
-        if (hit_triangle(world.vertices[i0], world.vertices[i1], world.vertices[i2], r)) {
-            hit_anything = true;
-            closest_so_far = temp_rec.t;
-            (*rec) = temp_rec;
+    for (var mesh_index: u32 = 0; mesh_index < 1; mesh_index++) {
+        var current_mesh: mesh = world.meshes[mesh_index];
+        for (var i: u32 = 0; i < 12; i++) {
+            let i0 = current_mesh.indices[i][0];
+            let i1 = current_mesh.indices[i][1];
+            let i2 = current_mesh.indices[i][2];
+            if (hit_triangle(current_mesh.vertices[i0], current_mesh.vertices[i1], current_mesh.vertices[i2], r)) {
+                hit_anything = true;
+                closest_so_far = temp_rec.t;
+                (*rec) = temp_rec;
+            }
         }
     }
 

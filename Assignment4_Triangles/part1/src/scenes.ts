@@ -1,5 +1,5 @@
 import { Material } from './copyable/materials.js';
-import { HittableList, Sphere } from './copyable/hittable-list.js';
+import { HittableList, Mesh, Sphere } from './copyable/hittable-list.js';
 import { CameraInitializeParameters } from './copyable/camera-initialize-parameters.js';
 import { glMatrix, vec3 } from 'gl-matrix';
 import { interleaveVertexData } from 'webgpu-utils';
@@ -113,8 +113,7 @@ export class FourSphere implements Scene {
         // { center: [1.0, 0.0, -1.0], radius: 0.5, mat: 3 },
         // { center: [0.0, 1.0, -2.0], radius: 1.0, mat: 2 },
       ],
-      vertices,
-      indices,
+      [new Mesh(vertices, indices)],
     );
   }
 }
@@ -180,6 +179,6 @@ export class FinalScene implements Scene {
     this.materials.push(Material.createMetal({ albedo: [0.7, 0.6, 0.5], fuzz: 0.0 }, 0.0));
     spheres.push({ center: [4, 1, 0], radius: 1.0, mat: this.materials.length - 1 });
 
-    this.world = new HittableList(spheres, [], []);
+    this.world = new HittableList(spheres, []);
   }
 }

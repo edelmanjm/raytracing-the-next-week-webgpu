@@ -89,8 +89,7 @@ export default class Renderer {
       this.height,
       materials.length,
       scene.world.spheres.length,
-      scene.world.vertices.length,
-      scene.world.indices.length,
+      scene.world.meshes.length,
     );
     const defs = makeShaderDataDefinitions(code);
 
