@@ -1,10 +1,5 @@
 import { getShader } from './shaders/main-shader.js';
-import {
-  createBuffersAndAttributesFromArrays,
-  interleaveVertexData,
-  makeShaderDataDefinitions,
-  makeStructuredView,
-} from 'webgpu-utils';
+import { makeShaderDataDefinitions, makeStructuredView } from 'webgpu-utils';
 import { FinalScene, Scene, FourSphere, FourSphereCameraPosition } from './scenes.js';
 import { RaytracingConfig } from './copyable/raytracing-config.js';
 import { ListBladeApi, Pane } from 'tweakpane';

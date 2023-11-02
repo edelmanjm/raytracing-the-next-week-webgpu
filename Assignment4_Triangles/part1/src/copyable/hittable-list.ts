@@ -1,4 +1,4 @@
-import { vec3 } from 'gl-matrix';
+import { vec3, vec4 } from 'gl-matrix';
 
 export interface Sphere {
   center: vec3;
@@ -23,22 +23,15 @@ export interface Vertex {
 export class HittableList {
   spheres: Sphere[];
   vertices: Vertex[];
-  indices: Uint32Array;
+  indices: vec4[];
 
-  padVec3ToVec4(input: vec3[], paddingValue: number = 0): number[] {
-    let paddedArray = [];
-
-    for (let i = 0; i < input.length; i += 3) {
-      paddedArray.push(...input[i]);
-      paddedArray.push(paddingValue);
-    }
-
-    return paddedArray;
+  padVec3ToVec4(input: vec3[], paddingValue: number = 0): vec4[] {
+    return input.map(v3 => vec4.fromValues(v3[0], v3[1], v3[2], 0));
   }
 
   constructor(spheres: Sphere[], vertices: Vertex[], indices: vec3[]) {
     this.spheres = spheres;
     this.vertices = vertices;
-    this.indices = new Uint32Array(this.padVec3ToVec4(indices));
+    this.indices = this.padVec3ToVec4(indices);
   }
 }

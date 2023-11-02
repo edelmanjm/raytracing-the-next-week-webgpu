@@ -3,6 +3,7 @@ import { HittableList, Sphere } from './copyable/hittable-list.js';
 import { CameraInitializeParameters } from './copyable/camera-initialize-parameters.js';
 import { glMatrix, vec3 } from 'gl-matrix';
 import { interleaveVertexData } from 'webgpu-utils';
+import { readObj } from './obj-reader.js';
 
 export interface Scene {
   shortName: string;
@@ -34,47 +35,7 @@ export class FourSphere implements Scene {
     Material.createDielectric({ ior: 1.5 }, 0.2), // Dielectric
   ];
 
-  // const typedArrays = [
-  //   new Float32Array([
-  //     1, 1, -1, 1, 1, 1, 1, -1, 1, 1, -1, -1, -1, 1, 1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, 1,
-  //     1, 1, 1, 1, 1, 1, -1, -1, 1, -1, -1, -1, -1, 1, -1, -1, 1, -1, 1, -1, -1, 1, 1, 1, 1, -1, 1,
-  //     1, -1, -1, 1, 1, -1, 1, -1, 1, -1, 1, 1, -1, 1, -1, -1, -1, -1, -1,
-  //   ]),
-  //   new Float32Array([
-  //     1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, 0, 1, 0, 0, 1,
-  //     0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0,
-  //     0, 1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1,
-  //   ]),
-  //   new Float32Array([
-  //     1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1,
-  //     1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1,
-  //   ]),
-  // ];
-  // const typedArrays = [
-  //   new Float32Array([-0.5, 0.0, -1, 0.5, 0, -1, 0.5, 1, -1]),
-  //   new Float32Array([0, 0, 0, 0, 0, 0, 0, 0, 0]),
-  //   new Float32Array([0, 0, 0, 0, 0, 0]),
-  // ];
-  // const arrayStride = 3 + 3 + 2; // pos + nrm + uv
-  // const arrayBuffer = new Float32Array(arrayStride * 24);
-  // interleaveVertexData(attributes, typedArrays, arrayStride, arrayBuffer);
-  // scene.world.vertices = arrayBuffer;
-
-  world = new HittableList(
-    [
-      { center: [-0.5, 0.0, -1.0], radius: 0.01, mat: 0 },
-      // { center: [0.0, -100.5, -1.0], radius: 100, mat: 1 },
-      // { center: [-1.0, 0.0, -1.0], radius: 0.5, mat: 4 },
-      // { center: [1.0, 0.0, -1.0], radius: 0.5, mat: 3 },
-      // { center: [0.0, 1.0, -2.0], radius: 1.0, mat: 2 },
-    ],
-    [
-      { px: -0.5, py: 0.0, pz: -1, nx: 0, ny: 0, nz: 0, u: 0, v: 0 },
-      { px: 0.5, py: 0.0, pz: -1, nx: 0, ny: 0, nz: 0, u: 0, v: 0 },
-      { px: 0.5, py: 1.0, pz: -1, nx: 0, ny: 0, nz: 0, u: 0, v: 0 },
-    ],
-    [[0, 1, 2]],
-  );
+  world: HittableList;
 
   cameraInitializationParameters: CameraInitializeParameters;
 
@@ -140,6 +101,66 @@ export class FourSphere implements Scene {
         this.description += 'View of reflection of three spheres';
         break;
     }
+
+    let [vertices, indices] = readObj(`
+# Blender 3.6.1
+# www.blender.org
+mtllib cube.mtl
+o Cube
+v -1.375141 -1.000000 -2.350429
+v -1.375141 1.000000 -2.350429
+v -0.330134 -1.000000 -4.055703
+v -0.330134 1.000000 -4.055703
+v 0.330134 -1.000000 -1.305422
+v 0.330134 1.000000 -1.305422
+v 1.375141 -1.000000 -3.010697
+v 1.375141 1.000000 -3.010697
+vn -0.8526 -0.0000 -0.5225
+vn 0.5225 -0.0000 -0.8526
+vn 0.8526 -0.0000 0.5225
+vn -0.5225 -0.0000 0.8526
+vn -0.0000 -1.0000 -0.0000
+vn -0.0000 1.0000 -0.0000
+vt 0.625000 0.000000
+vt 0.375000 0.250000
+vt 0.375000 0.000000
+vt 0.625000 0.250000
+vt 0.375000 0.500000
+vt 0.625000 0.500000
+vt 0.375000 0.750000
+vt 0.625000 0.750000
+vt 0.375000 1.000000
+vt 0.125000 0.750000
+vt 0.125000 0.500000
+vt 0.875000 0.500000
+vt 0.625000 1.000000
+vt 0.875000 0.750000
+s 0
+f 2/1/1 3/2/1 1/3/1
+f 4/4/2 7/5/2 3/2/2
+f 8/6/3 5/7/3 7/5/3
+f 6/8/4 1/9/4 5/7/4
+f 7/5/5 1/10/5 3/11/5
+f 4/12/6 6/8/6 8/6/6
+f 2/1/1 4/4/1 3/2/1
+f 4/4/2 8/6/2 7/5/2
+f 8/6/3 6/8/3 5/7/3
+f 6/8/4 2/13/4 1/9/4
+f 7/5/5 5/7/5 1/10/5
+f 4/12/6 2/14/6 6/8/6
+`);
+
+    this.world = new HittableList(
+      [
+        { center: [-0.5, 0.0, -1.0], radius: 0.01, mat: 0 },
+        // { center: [0.0, -100.5, -1.0], radius: 100, mat: 1 },
+        // { center: [-1.0, 0.0, -1.0], radius: 0.5, mat: 4 },
+        // { center: [1.0, 0.0, -1.0], radius: 0.5, mat: 3 },
+        // { center: [0.0, 1.0, -2.0], radius: 1.0, mat: 2 },
+      ],
+      vertices,
+      indices,
+    );
   }
 }
 
