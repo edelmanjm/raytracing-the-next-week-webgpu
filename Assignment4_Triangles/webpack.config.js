@@ -24,6 +24,10 @@ export default {
         test: /\.wgsl$/,
         type: 'asset/source',
       },
+      {
+        test: /\.obj$/,
+        type: 'asset/source',
+      },
     ],
   },
   devtool: 'source-map',

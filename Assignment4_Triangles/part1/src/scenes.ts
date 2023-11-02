@@ -4,6 +4,7 @@ import { CameraInitializeParameters } from './copyable/camera-initialize-paramet
 import { glMatrix, vec3 } from 'gl-matrix';
 import { interleaveVertexData } from 'webgpu-utils';
 import { readObj } from './obj-reader.js';
+import cube from './objs/cube.obj';
 
 export interface Scene {
   shortName: string;
@@ -102,53 +103,7 @@ export class FourSphere implements Scene {
         break;
     }
 
-    let [vertices, indices] = readObj(`
-# Blender 3.6.1
-# www.blender.org
-mtllib cube.mtl
-o Cube
-v -1.375141 -1.000000 -2.350429
-v -1.375141 1.000000 -2.350429
-v -0.330134 -1.000000 -4.055703
-v -0.330134 1.000000 -4.055703
-v 0.330134 -1.000000 -1.305422
-v 0.330134 1.000000 -1.305422
-v 1.375141 -1.000000 -3.010697
-v 1.375141 1.000000 -3.010697
-vn -0.8526 -0.0000 -0.5225
-vn 0.5225 -0.0000 -0.8526
-vn 0.8526 -0.0000 0.5225
-vn -0.5225 -0.0000 0.8526
-vn -0.0000 -1.0000 -0.0000
-vn -0.0000 1.0000 -0.0000
-vt 0.625000 0.000000
-vt 0.375000 0.250000
-vt 0.375000 0.000000
-vt 0.625000 0.250000
-vt 0.375000 0.500000
-vt 0.625000 0.500000
-vt 0.375000 0.750000
-vt 0.625000 0.750000
-vt 0.375000 1.000000
-vt 0.125000 0.750000
-vt 0.125000 0.500000
-vt 0.875000 0.500000
-vt 0.625000 1.000000
-vt 0.875000 0.750000
-s 0
-f 2/1/1 3/2/1 1/3/1
-f 4/4/2 7/5/2 3/2/2
-f 8/6/3 5/7/3 7/5/3
-f 6/8/4 1/9/4 5/7/4
-f 7/5/5 1/10/5 3/11/5
-f 4/12/6 6/8/6 8/6/6
-f 2/1/1 4/4/1 3/2/1
-f 4/4/2 8/6/2 7/5/2
-f 8/6/3 6/8/3 5/7/3
-f 6/8/4 2/13/4 1/9/4
-f 7/5/5 5/7/5 1/10/5
-f 4/12/6 2/14/6 6/8/6
-`);
+    let [vertices, indices] = readObj(cube);
 
     this.world = new HittableList(
       [
