@@ -51,7 +51,7 @@ export default class Renderer {
 
   raytracingConfig: RaytracingConfig = {
     // Antialiasing Requirement
-    samples_per_pixel: 100,
+    samples_per_pixel: 5,
     max_depth: 25,
     rand_seed: [Math.random(), Math.random(), Math.random(), Math.random()],
     weight: 0,

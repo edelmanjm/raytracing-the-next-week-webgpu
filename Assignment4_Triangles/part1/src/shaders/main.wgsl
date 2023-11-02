@@ -274,6 +274,7 @@ struct mesh {
     // The fourth value is a dummy value for padding due to WGSL alignment requirements for uniforms
     indices: array<vec4<u32>, MAX_MESH_INDEX_SIZE>,
     indices_length: u32,
+    mat: material_index,
 }
 
 fn hit_sphere(s: sphere, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hit_record>) -> bool {
@@ -306,13 +307,13 @@ fn hit_sphere(s: sphere, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function
     return true;
 }
 
-fn hit_triangle(v0: vertex, v1: vertex, v2: vertex, r: ray) -> bool {
+fn hit_triangle(v0: vertex, v1: vertex, v2: vertex, mat: material_index, r: ray, rec: ptr<function, hit_record>) -> bool {
     let v0v1: vec3f = get_position(v1) - get_position(v0);
     let v0v2: vec3f = get_position(v2) - get_position(v0);
     let pvec: vec3f = cross(r.direction, v0v2);
     let det: f32 = dot(v0v1, pvec);
 
-    let k_epsilon: f32 = 0.01;
+    let k_epsilon: f32 = 0.0000001;
 
     let culling: bool = false;
     if (culling) {
@@ -342,6 +343,11 @@ fn hit_triangle(v0: vertex, v1: vertex, v2: vertex, r: ray) -> bool {
     }
 
     let t: f32 = dot(v0v2, qvec) * invDet;
+
+    (*rec).t = t;
+    (*rec).p = ray_at(r, t);
+    set_face_normal(rec, r, pvec);
+    (*rec).mat = mat;
 
     return true;
 }
@@ -373,7 +379,7 @@ fn hit_hittable_list(r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hi
             let i0 = current_mesh.indices[i][0];
             let i1 = current_mesh.indices[i][1];
             let i2 = current_mesh.indices[i][2];
-            if (hit_triangle(current_mesh.vertices[i0], current_mesh.vertices[i1], current_mesh.vertices[i2], r)) {
+            if (hit_triangle(current_mesh.vertices[i0], current_mesh.vertices[i1], current_mesh.vertices[i2], current_mesh.mat, r, &temp_rec)) {
                 hit_anything = true;
                 closest_so_far = temp_rec.t;
                 (*rec) = temp_rec;
