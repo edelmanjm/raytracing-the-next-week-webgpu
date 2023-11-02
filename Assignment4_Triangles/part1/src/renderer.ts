@@ -1,5 +1,10 @@
 import { getShader } from './shaders/main-shader.js';
-import { makeShaderDataDefinitions, makeStructuredView } from 'webgpu-utils';
+import {
+  createBuffersAndAttributesFromArrays,
+  interleaveVertexData,
+  makeShaderDataDefinitions,
+  makeStructuredView,
+} from 'webgpu-utils';
 import { FinalScene, Scene, FourSphere, FourSphereCameraPosition } from './scenes.js';
 import { RaytracingConfig } from './copyable/raytracing-config.js';
 import { ListBladeApi, Pane } from 'tweakpane';
@@ -75,6 +80,12 @@ export default class Renderer {
   }
 
   updatePipeline(scene: Scene, configOnly: boolean) {
+    const attributes: GPUVertexAttribute[] = [
+      { shaderLocation: 0, offset: 0, format: 'float32x3' },
+      { shaderLocation: 1, offset: 12, format: 'float32x3' },
+      { shaderLocation: 2, offset: 24, format: 'float32x2' },
+    ];
+
     const materials = scene.materials;
 
     const code: string = getShader(
@@ -82,7 +93,9 @@ export default class Renderer {
       this.width,
       this.height,
       materials.length,
-      scene.world.spheres_size,
+      scene.world.spheres.length,
+      scene.world.vertices.length,
+      scene.world.indices.length,
     );
     const defs = makeShaderDataDefinitions(code);
 
@@ -116,7 +129,6 @@ export default class Renderer {
         this.worldBuffer.unmap();
       }
 
-      // Camera Requirement
       // Camera parameters buffer
       {
         const cameraIpView = makeStructuredView(defs.uniforms.camera_ip);

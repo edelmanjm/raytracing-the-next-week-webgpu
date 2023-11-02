@@ -246,6 +246,26 @@ struct sphere {
     mat: material_index,
 }
 
+// We can't use vec3fs due to the aligment requirements of its type. Therefore, we use individual f32s
+// See https://gpuweb.github.io/gpuweb/wgsl/#alignment-and-size for details
+struct vertex {
+    // Positions
+    px: f32,
+    py: f32,
+    pz: f32,
+    // Normals
+    nx: f32,
+    ny: f32,
+    nz: f32,
+    // Texture coordinates
+    u: f32,
+    v: f32
+}
+
+fn get_position(v: vertex) -> vec3f {
+    return vec3f(v.px, v.py, v.pz);
+}
+
 fn hit_sphere(s: sphere, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hit_record>) -> bool {
     let oc = r.origin - s.center;
     let a = length_squared(r.direction);
@@ -276,9 +296,51 @@ fn hit_sphere(s: sphere, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function
     return true;
 }
 
+fn hit_triangle(v0: vertex, v1: vertex, v2: vertex, r: ray) -> bool {
+    let v0v1: vec3f = get_position(v1) - get_position(v0);
+    let v0v2: vec3f = get_position(v2) - get_position(v0);
+    let pvec: vec3f = cross(r.direction, v0v2);
+    let det: f32 = dot(v0v1, pvec);
+
+    let k_epsilon: f32 = 0.01;
+
+    let culling: bool = false;
+    if (culling) {
+        // if the determinant is negative the triangle is backfacing
+        // if the determinant is close to 0, the ray misses the triangle
+        if (det < k_epsilon) {
+            return false;
+        }
+    } else {
+        // ray and triangle are parallel if det is close to 0
+        if (abs(det) < k_epsilon) {
+            return false;
+        }
+    }
+    let invDet: f32 = 1 / det;
+
+    let tvec: vec3f = r.origin - get_position(v0);
+    let u: f32 = dot(tvec, pvec) * invDet;
+    if (u < 0 || u > 1) {
+        return false;
+    }
+
+    let qvec: vec3f = cross(tvec, v0v1);
+    let v: f32 = dot(r.direction, qvec) * invDet;
+    if (v < 0 || u + v > 1) {
+        return false;
+    }
+
+    let t: f32 = dot(v0v2, qvec) * invDet;
+
+    return true;
+}
+
 struct hittable_list {
     spheres: array<sphere, ${sphereCount}>,
-    spheres_size: u32,
+    vertices: array<vertex, ${vertexCount}>,
+    // The fourth value is a dummy value for padding due to WGSL alignment requirements for uniforms
+    indices: array<vec4<u32>, ${indicesCount}>,
 }
 
 @group(0) @binding(2)
@@ -289,8 +351,19 @@ fn hit_hittable_list(r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hi
     var hit_anything: bool = false;
     var closest_so_far: f32 = ray_tmax;
 
-    for (var i: u32 = 0; i < world.spheres_size; i++) {
+    for (var i: u32 = 0; i < ${sphereCount}; i++) {
         if (hit_sphere(world.spheres[i], r, ray_tmin, closest_so_far, &temp_rec)) {
+            hit_anything = true;
+            closest_so_far = temp_rec.t;
+            (*rec) = temp_rec;
+        }
+    }
+
+    for (var i: u32 = 0; i < ${indicesCount}; i++) {
+        let i0 = world.indices[i][0];
+        let i1 = world.indices[i][1];
+        let i2 = world.indices[i][2];
+        if (hit_triangle(world.vertices[i0], world.vertices[i1], world.vertices[i2], r)) {
             hit_anything = true;
             closest_so_far = temp_rec.t;
             (*rec) = temp_rec;

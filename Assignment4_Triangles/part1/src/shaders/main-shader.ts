@@ -6,6 +6,8 @@ export function getShader(
   height: number,
   materialCount: number,
   sphereCount: number,
+  vertexCount: number,
+  indicesCount: number,
 ): string {
   return eval('`' + shaderMain + '`');
 }

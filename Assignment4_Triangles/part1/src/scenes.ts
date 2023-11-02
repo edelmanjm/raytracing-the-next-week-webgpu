@@ -2,6 +2,7 @@ import { Material } from './copyable/materials.js';
 import { HittableList, Sphere } from './copyable/hittable-list.js';
 import { CameraInitializeParameters } from './copyable/camera-initialize-parameters.js';
 import { glMatrix, vec3 } from 'gl-matrix';
+import { interleaveVertexData } from 'webgpu-utils';
 
 export interface Scene {
   shortName: string;
@@ -33,13 +34,47 @@ export class FourSphere implements Scene {
     Material.createDielectric({ ior: 1.5 }, 0.2), // Dielectric
   ];
 
-  world = new HittableList([
-    { center: [0.0, 0.0, -1.0], radius: 0.5, mat: 0 },
-    { center: [0.0, -100.5, -1.0], radius: 100, mat: 1 },
-    { center: [-1.0, 0.0, -1.0], radius: 0.5, mat: 4 },
-    { center: [1.0, 0.0, -1.0], radius: 0.5, mat: 3 },
-    { center: [0.0, 1.0, -2.0], radius: 1.0, mat: 2 },
-  ]);
+  // const typedArrays = [
+  //   new Float32Array([
+  //     1, 1, -1, 1, 1, 1, 1, -1, 1, 1, -1, -1, -1, 1, 1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, 1,
+  //     1, 1, 1, 1, 1, 1, -1, -1, 1, -1, -1, -1, -1, 1, -1, -1, 1, -1, 1, -1, -1, 1, 1, 1, 1, -1, 1,
+  //     1, -1, -1, 1, 1, -1, 1, -1, 1, -1, 1, 1, -1, 1, -1, -1, -1, -1, -1,
+  //   ]),
+  //   new Float32Array([
+  //     1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, 0, 1, 0, 0, 1,
+  //     0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0,
+  //     0, 1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1,
+  //   ]),
+  //   new Float32Array([
+  //     1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1,
+  //     1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1,
+  //   ]),
+  // ];
+  // const typedArrays = [
+  //   new Float32Array([-0.5, 0.0, -1, 0.5, 0, -1, 0.5, 1, -1]),
+  //   new Float32Array([0, 0, 0, 0, 0, 0, 0, 0, 0]),
+  //   new Float32Array([0, 0, 0, 0, 0, 0]),
+  // ];
+  // const arrayStride = 3 + 3 + 2; // pos + nrm + uv
+  // const arrayBuffer = new Float32Array(arrayStride * 24);
+  // interleaveVertexData(attributes, typedArrays, arrayStride, arrayBuffer);
+  // scene.world.vertices = arrayBuffer;
+
+  world = new HittableList(
+    [
+      { center: [-0.5, 0.0, -1.0], radius: 0.01, mat: 0 },
+      // { center: [0.0, -100.5, -1.0], radius: 100, mat: 1 },
+      // { center: [-1.0, 0.0, -1.0], radius: 0.5, mat: 4 },
+      // { center: [1.0, 0.0, -1.0], radius: 0.5, mat: 3 },
+      // { center: [0.0, 1.0, -2.0], radius: 1.0, mat: 2 },
+    ],
+    [
+      { px: -0.5, py: 0.0, pz: -1, nx: 0, ny: 0, nz: 0, u: 0, v: 0 },
+      { px: 0.5, py: 0.0, pz: -1, nx: 0, ny: 0, nz: 0, u: 0, v: 0 },
+      { px: 0.5, py: 1.0, pz: -1, nx: 0, ny: 0, nz: 0, u: 0, v: 0 },
+    ],
+    [[0, 1, 2]],
+  );
 
   cameraInitializationParameters: CameraInitializeParameters;
 
@@ -169,6 +204,6 @@ export class FinalScene implements Scene {
     this.materials.push(Material.createMetal({ albedo: [0.7, 0.6, 0.5], fuzz: 0.0 }, 0.0));
     spheres.push({ center: [4, 1, 0], radius: 1.0, mat: this.materials.length - 1 });
 
-    this.world = new HittableList(spheres);
+    this.world = new HittableList(spheres, [], []);
   }
 }
