@@ -107,13 +107,13 @@ export class FourSphere implements Scene {
 
     this.world = new HittableList(
       [
-        { center: [0.0, 0.0, -1.0], radius: 0.5, mat: 0 },
+        // { center: [0.0, 0.0, -1.0], radius: 0.5, mat: 0 },
         { center: [0.0, -100.5, -1.0], radius: 100, mat: 1 },
-        { center: [-1.0, 0.0, -1.0], radius: 0.5, mat: 4 },
-        { center: [1.0, 0.0, -1.0], radius: 0.5, mat: 3 },
-        { center: [0.0, 1.0, -2.0], radius: 1.0, mat: 2 },
+        // { center: [-1.0, 0.0, -1.0], radius: 0.5, mat: 4 },
+        // { center: [1.0, 0.0, -1.0], radius: 0.5, mat: 3 },
+        // { center: [0.0, 1.0, -2.0], radius: 1.0, mat: 2 },
       ],
-      [new Mesh(vertices, indices, 1)],
+      [new Mesh(vertices, indices, 0)],
     );
   }
 }
