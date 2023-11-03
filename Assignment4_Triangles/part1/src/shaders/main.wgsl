@@ -310,68 +310,46 @@ fn hit_sphere(s: sphere, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function
 fn hit_triangle(v0: vertex, v1: vertex, v2: vertex, mat: material_index, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hit_record>) -> bool {
     let v0v1: vec3f = get_position(v1) - get_position(v0);
     let v0v2: vec3f = get_position(v2) - get_position(v0);
-    // no need to normalize
-    let n: vec3f = cross(v0v1, v0v2);
-    let area2: f32  = length(n);
+    let pvec: vec3f = cross(r.direction, v0v2);
+    let det: f32 = dot(v0v1, pvec);
 
     let k_epsilon: f32 = 0.0000001;
 
-    // Step 1: finding P
+    let culling: bool = false;
+    if (culling) {
+        // if the determinant is negative the triangle is backfacing
+        // if the determinant is close to 0, the ray misses the triangle
+        if (det < k_epsilon) {
+            return false;
+        }
+    } else {
+        // ray and triangle are parallel if det is close to 0
+        if (abs(det) < k_epsilon) {
+            return false;
+        }
+    }
+    let invDet: f32 = 1 / det;
 
-    // check if the ray and plane are parallel.
-    let n_dot_ray_direction: f32 = dot(n, r.direction);
-    if (abs(n_dot_ray_direction) < k_epsilon)  {
-        return false; // they are parallel, so they don't intersect!
+    let tvec: vec3f = r.origin - get_position(v0);
+    let u: f32 = dot(tvec, pvec) * invDet;
+    if (u < 0 || u > 1) {
+        return false;
     }
 
-    // compute d parameter using equation 2
-    let d: f32 = dot(-n, get_position(v0));
-
-    // compute t (equation 3)
-    let t = -(dot(n, r.origin) + d) / n_dot_ray_direction;
-
-    // check if the triangle is behind the ray
-    if (t < 0) {
-        return false;// the triangle is behind
+    let qvec: vec3f = cross(tvec, v0v1);
+    let v: f32 = dot(r.direction, qvec) * invDet;
+    if (v < 0 || u + v > 1) {
+        return false;
     }
 
-    // compute the intersection point using equation 1
-    let p: vec3f = r.origin + t * r.direction;
-
-    // Step 2: inside-outside test
-    var c: vec3f; // vector perpendicular to triangle's plane
-
-    // edge 0
-    let edge0: vec3f = get_position(v1) - get_position(v0);
-    let vp0: vec3f = p - get_position(v0);
-    c = cross(edge0, vp0);
-    if (dot(n, c) < 0) {
-        return false; // P is on the right side
-    }
-
-    // edge 1
-    let edge1: vec3f = get_position(v2) - get_position(v1);
-    let vp1: vec3f = p - get_position(v1);
-    c = cross(edge1, vp1);
-    if (dot(n, c) < 0) {
-      return false; // P is on the right side
-    }
-
-    // edge 2
-    let edge2: vec3f = get_position(v0) - get_position(v2);
-    let vp2: vec3f = p - get_position(v2);
-    c = cross(edge2, vp2);
-    if (dot(n, c) < 0) {
-        return false; // P is on the right side;
-    }
-
+    let t: f32 = dot(v0v2, qvec) * invDet;
     if (t <= ray_tmin || ray_tmax <= t) {
         return false;
     }
 
     (*rec).t = t;
     (*rec).p = ray_at(r, t);
-    set_face_normal(rec, r, n);
+    set_face_normal(rec, r, cross(v0v1, v0v2));
     (*rec).mat = mat;
 
     return true;
