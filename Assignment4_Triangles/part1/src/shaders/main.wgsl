@@ -376,9 +376,9 @@ fn hit_hittable_list(r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hi
         }
     }
 
-    for (var mesh_index: u32 = 0; mesh_index < 1; mesh_index++) {
+    for (var mesh_index: u32 = 0; mesh_index < ${meshCount}; mesh_index++) {
         var current_mesh: mesh = world.meshes[mesh_index];
-        for (var i: u32 = 0; i < 12; i++) {
+        for (var i: u32 = 0; i < current_mesh.indices_length; i++) {
             let i0 = current_mesh.indices[i][0];
             let i1 = current_mesh.indices[i][1];
             let i2 = current_mesh.indices[i][2];

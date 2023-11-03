@@ -2,9 +2,9 @@ import { Material } from './copyable/materials.js';
 import { HittableList, Mesh, Sphere } from './copyable/hittable-list.js';
 import { CameraInitializeParameters } from './copyable/camera-initialize-parameters.js';
 import { glMatrix, vec3 } from 'gl-matrix';
-import { interleaveVertexData } from 'webgpu-utils';
 import { readObj } from './obj-reader.js';
 import cube from './objs/cube.obj';
+import bunny from './objs/bunny_centered_247_faces.obj';
 
 export interface Scene {
   shortName: string;
@@ -103,7 +103,7 @@ export class FourSphere implements Scene {
         break;
     }
 
-    let [vertices, indices] = readObj(cube);
+    let [vertices, indices] = readObj(bunny);
 
     this.world = new HittableList(
       [
