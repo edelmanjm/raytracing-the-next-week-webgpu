@@ -356,8 +356,8 @@ fn hit_triangle(v0: vertex, v1: vertex, v2: vertex, mat: material_index, r: ray,
 }
 
 struct hittable_list {
-    spheres: array<sphere, ${sphereCount}>,
-    meshes: array<mesh, ${meshCount}>
+    spheres: array<sphere, ${sphereCountOrOne}>,
+    meshes: array<mesh, ${meshCountOrOne}>
 }
 
 @group(0) @binding(2)

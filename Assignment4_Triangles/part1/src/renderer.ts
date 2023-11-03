@@ -1,6 +1,6 @@
 import { getShader } from './shaders/main-shader.js';
 import { makeShaderDataDefinitions, makeStructuredView } from 'webgpu-utils';
-import { FinalScene, Scene, FourSphere, FourSphereCameraPosition } from './scenes.js';
+import { FinalScene, Scene, FourSphere, FourSphereCameraPosition, MeshShowcase } from './scenes.js';
 import { RaytracingConfig } from './copyable/raytracing-config.js';
 import { ListBladeApi, Pane } from 'tweakpane';
 import { vec4 } from 'gl-matrix';
@@ -199,7 +199,11 @@ export default class Renderer {
     let sceneBlade = this.pane.addBlade({
       view: 'list',
       label: 'Scene',
-      options: [...fourSphereOptions, { text: FinalScene.description, value: new FinalScene() }],
+      options: [
+        ...fourSphereOptions,
+        { text: FinalScene.description, value: new FinalScene() },
+        { text: MeshShowcase.description, value: new MeshShowcase() },
+      ],
       value: this.scene,
     }) as ListBladeApi<Scene>;
     sceneBlade.on('change', ev => {

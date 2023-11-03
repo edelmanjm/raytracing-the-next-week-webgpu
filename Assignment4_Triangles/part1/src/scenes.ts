@@ -3,8 +3,10 @@ import { HittableList, Mesh, Sphere } from './copyable/hittable-list.js';
 import { CameraInitializeParameters } from './copyable/camera-initialize-parameters.js';
 import { glMatrix, vec3 } from 'gl-matrix';
 import { readObj } from './obj-reader.js';
-import cube from './objs/cube.obj';
+import plane from './objs/plane.obj';
+import icosphere from './objs/icosphere.obj';
 import bunny from './objs/bunny_centered_247_faces.obj';
+import monkey from './objs/monkey.obj';
 
 export interface Scene {
   shortName: string;
@@ -103,17 +105,15 @@ export class FourSphere implements Scene {
         break;
     }
 
-    let [vertices, indices] = readObj(bunny);
-
     this.world = new HittableList(
       [
-        // { center: [0.0, 0.0, -1.0], radius: 0.5, mat: 0 },
+        { center: [0.0, 0.0, -1.0], radius: 0.5, mat: 0 },
         { center: [0.0, -100.5, -1.0], radius: 100, mat: 1 },
-        // { center: [-1.0, 0.0, -1.0], radius: 0.5, mat: 4 },
-        // { center: [1.0, 0.0, -1.0], radius: 0.5, mat: 3 },
-        // { center: [0.0, 1.0, -2.0], radius: 1.0, mat: 2 },
+        { center: [-1.0, 0.0, -1.0], radius: 0.5, mat: 4 },
+        { center: [1.0, 0.0, -1.0], radius: 0.5, mat: 3 },
+        { center: [0.0, 1.0, -2.0], radius: 1.0, mat: 2 },
       ],
-      [new Mesh(vertices, indices, 0)],
+      [],
     );
   }
 }
@@ -180,5 +180,35 @@ export class FinalScene implements Scene {
     spheres.push({ center: [4, 1, 0], radius: 1.0, mat: this.materials.length - 1 });
 
     this.world = new HittableList(spheres, []);
+  }
+}
+
+export class MeshShowcase implements Scene {
+  shortName: string = 'output-11';
+  static description: string = 'Scene 11: Multiple meshes';
+  materials = [
+    Material.createLambertian({ albedo: [0.0, 1.0, 0.0] }, 0.5), // Lambertian green
+    Material.createLambertian({ albedo: [1.0, 0.0, 0.0] }, 0.1), // Lambertian red
+    Material.createMetal({ albedo: [0.3, 0.3, 0.5], fuzz: 0.0 }, 0.0), // Metal blue-grey glossy
+    Material.createMetal({ albedo: [0.3, 0.3, 0.5], fuzz: 0.5 }, 0.0), // Metal blue-grey rough
+    Material.createDielectric({ ior: 1.5 }, 0.2), // Dielectric
+  ];
+
+  world: HittableList;
+
+  cameraInitializationParameters: CameraInitializeParameters = new CameraInitializeParameters(
+    glMatrix.toRadian(50),
+    [0, 2, 3],
+    [0, 1, 0],
+    [0, 1, 0],
+    glMatrix.toRadian(0.1),
+    5,
+  );
+
+  constructor() {
+    this.world = new HittableList(
+      [{ center: [-1.5, 1.0, -2.0], radius: 0.5, mat: 2 }],
+      [new Mesh(...readObj(icosphere), 0), new Mesh(...readObj(plane), 1)],
+    );
   }
 }
