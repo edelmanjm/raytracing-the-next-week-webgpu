@@ -307,47 +307,74 @@ fn hit_sphere(s: sphere, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function
     return true;
 }
 
-fn hit_triangle(v0: vertex, v1: vertex, v2: vertex, mat: material_index, r: ray, rec: ptr<function, hit_record>) -> bool {
+fn hit_triangle(v0: vertex, v1: vertex, v2: vertex, mat: material_index, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hit_record>) -> bool {
+    let v0v1: vec3f = get_position(v1) - get_position(v0);
+    let v0v2: vec3f = get_position(v2) - get_position(v0);
+    // no need to normalize
+    let n: vec3f = cross(v0v1, v0v2);
+    let area2: f32  = length(n);
+
     let k_epsilon: f32 = 0.0000001;
 
-    let edge1 = get_position(v1) - get_position(v0);
-    let edge2 = get_position(v2) - get_position(v0);
-    let h = cross(r.direction, edge2);
-    let a = dot(edge1, h);
+    // Step 1: finding P
 
-    if (a > -k_epsilon && a < k_epsilon) {
-        return false;    // This ray is parallel to this triangle.
+    // check if the ray and plane are parallel.
+    let n_dot_ray_direction: f32 = dot(n, r.direction);
+    if (abs(n_dot_ray_direction) < k_epsilon)  {
+        return false; // they are parallel, so they don't intersect!
     }
 
-    let f = 1.0 / a;
-    let s = r.origin - get_position(v0);
-    let u = f * dot(s, h);
+    // compute d parameter using equation 2
+    let d: f32 = dot(-n, get_position(v0));
 
-    if (u < 0.0 || u > 1.0) {
+    // compute t (equation 3)
+    let t = -(dot(n, r.origin) + d) / n_dot_ray_direction;
+
+    // check if the triangle is behind the ray
+    if (t < 0) {
+        return false;// the triangle is behind
+    }
+
+    // compute the intersection point using equation 1
+    let p: vec3f = r.origin + t * r.direction;
+
+    // Step 2: inside-outside test
+    var c: vec3f; // vector perpendicular to triangle's plane
+
+    // edge 0
+    let edge0: vec3f = get_position(v1) - get_position(v0);
+    let vp0: vec3f = p - get_position(v0);
+    c = cross(edge0, vp0);
+    if (dot(n, c) < 0) {
+        return false; // P is on the right side
+    }
+
+    // edge 1
+    let edge1: vec3f = get_position(v2) - get_position(v1);
+    let vp1: vec3f = p - get_position(v1);
+    c = cross(edge1, vp1);
+    if (dot(n, c) < 0) {
+      return false; // P is on the right side
+    }
+
+    // edge 2
+    let edge2: vec3f = get_position(v0) - get_position(v2);
+    let vp2: vec3f = p - get_position(v2);
+    c = cross(edge2, vp2);
+    if (dot(n, c) < 0) {
+        return false; // P is on the right side;
+    }
+
+    if (t <= ray_tmin || ray_tmax <= t) {
         return false;
     }
 
-    let q = cross(s, edge1);
-    let v = f * dot(r.direction, q);
+    (*rec).t = t;
+    (*rec).p = ray_at(r, t);
+    set_face_normal(rec, r, n);
+    (*rec).mat = mat;
 
-    if (v < 0.0 || u + v > 1.0) {
-        return false;
-    }
-
-    // At this stage we can compute t to find out where the intersection point is on the line.
-    let t: f32 = f * dot(edge2, q);
-
-    if (t > k_epsilon) { // ray intersection
-        (*rec).t = t;
-        (*rec).p = ray_at(r, t);
-        set_face_normal(rec, r, q);
-        (*rec).mat = mat;
-
-        return true;
-    } else  {
-        // This means that there is a line intersection but not a ray intersection.
-        return false;
-    }
+    return true;
 }
 
 struct hittable_list {
@@ -377,7 +404,7 @@ fn hit_hittable_list(r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hi
             let i0 = current_mesh.indices[i][0];
             let i1 = current_mesh.indices[i][1];
             let i2 = current_mesh.indices[i][2];
-            if (hit_triangle(current_mesh.vertices[i0], current_mesh.vertices[i1], current_mesh.vertices[i2], current_mesh.mat, r, &temp_rec)) {
+            if (hit_triangle(current_mesh.vertices[i0], current_mesh.vertices[i1], current_mesh.vertices[i2], current_mesh.mat, r, ray_tmin, closest_so_far, &temp_rec)) {
                 hit_anything = true;
                 closest_so_far = temp_rec.t;
                 (*rec) = temp_rec;
