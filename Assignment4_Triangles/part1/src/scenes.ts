@@ -4,8 +4,7 @@ import { CameraInitializeParameters } from './copyable/camera-initialize-paramet
 import { glMatrix, vec3 } from 'gl-matrix';
 import { readObj } from './obj-reader.js';
 import plane from './objs/plane.obj';
-import icosphere from './objs/icosphere.obj';
-import bunny from './objs/bunny_centered_247_faces.obj';
+import torus from './objs/torus.obj';
 import monkey from './objs/monkey.obj';
 
 export interface Scene {
@@ -207,8 +206,15 @@ export class MeshShowcase implements Scene {
 
   constructor() {
     this.world = new HittableList(
-      [{ center: [-1.5, 1.0, -2.0], radius: 0.5, mat: 2 }],
-      [new Mesh(...readObj(icosphere), 0), new Mesh(...readObj(plane), 1)],
+      [
+        { center: [-1.7, 1.0, -2.0], radius: 0.5, mat: 2 },
+        { center: [1.7, 1.0, -2.0], radius: 0.5, mat: 4 },
+      ],
+      [
+        new Mesh(...readObj(monkey), 0),
+        new Mesh(...readObj(torus), 3),
+        new Mesh(...readObj(plane), 1),
+      ],
     );
   }
 }

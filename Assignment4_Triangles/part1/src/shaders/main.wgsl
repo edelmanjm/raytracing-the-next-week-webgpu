@@ -266,7 +266,7 @@ fn get_position(v: vertex) -> vec3f {
     return vec3f(v.px, v.py, v.pz);
 }
 
-const MAX_MESH_INDEX_SIZE = 256;
+const MAX_MESH_INDEX_SIZE = 512;
 
 struct mesh {
     vertices: array<vertex, MAX_MESH_INDEX_SIZE>,
