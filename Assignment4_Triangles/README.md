@@ -1,15 +1,19 @@
 # Your Information
 
-*TODO*: Please edit the following information in your assignment
-
-* Name: 
-* How many hours did it take you to complete this assignment? 
-* Did you collaborate or share ideas with any other students/TAs/Professors? 
+* Name: **Jonathan Edelman**
+* How many hours did it take you to complete this assignment?: **Approximately 26**
+* Did you collaborate or share ideas with any other students/TAs/Professors?: **I worked with Professor  Shah to try and debug an issue when rendering larger scenes.**
 * Did you use any external resources? 
-  * (tbd if any)
-  * (tbd if any)
-  * (tbd if any)
+  * scratchapixel's [guide to rendering ray-traced triangle](https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/ray-triangle-intersection-geometric-solution.html) was extensively referenced, with the core ray-traingle intersection code copied from their implementation of Möller-Trumbore.
+  * The [Wikipedia page on Möller-Trumbore](https://en.wikipedia.org/wiki/Möller–Trumbore_intersection_algorithm) was referenced, though ultimately no code was used from it.
+  * [This guide to using compute shaders with vertex data](https://toji.dev/webgpu-best-practices/compute-vertex-data.html) was referenced, though the actual information that ended up being relevant was basically limited to alignment-related concepts.
+  * [webgpufundamentals.org](https://webgpufundamentals.org/) was referenced during debugging to see if there were any WebGPU concepts that might be important when dealing with larger buffers.
+  * [alain.xyz's raw WebGPU guide](https://alain.xyz/blog/raw-webgpu) was used as a review of high-level concepts.
+  * Chrome's and Mozilla's WebGPU developer documentation was regularly referenced.
+  * The [WGSL specification](https://www.w3.org/TR/WGSL/) was regularly referenced, as was [the explainer](https://gpuweb.github.io/gpuweb/explainer/).
 * (Optional) What was the most interesting part of the assignment? How would you improve this assignment?
+  * Though it was fairly frustrating (and ultimately remains somewhat incomplete), the process of debugging the issues with larger scenes was interesting, as I got to test my understanding of compute shaders and WebGPU.
+  * N.b.: While scenes up to 512 vertices/faces are currently stable with a storage buffer, scenes of 1024 and larger still seem to be unstable. This has not yet been root caused. It doesn't appear to be alignment, OOB, or workgroup size related; it is likely timeout related, but this doesn't seem to be easily configurable in WebGPU.
 
 # Assignment
 
