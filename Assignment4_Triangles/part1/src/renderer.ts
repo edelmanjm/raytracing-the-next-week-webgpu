@@ -193,7 +193,9 @@ export default class Renderer {
       return { text: scene.description, value: scene };
     });
 
-    this.scene = fourSphereOptions[0].value;
+    const finalScene = new FinalScene();
+    const meshShowcase = new MeshShowcase();
+    this.scene = meshShowcase;
 
     // View Requirement
     let sceneBlade = this.pane.addBlade({
@@ -201,8 +203,8 @@ export default class Renderer {
       label: 'Scene',
       options: [
         ...fourSphereOptions,
-        { text: FinalScene.description, value: new FinalScene() },
-        { text: MeshShowcase.description, value: new MeshShowcase() },
+        { text: FinalScene.description, value: finalScene },
+        { text: MeshShowcase.description, value: meshShowcase },
       ],
       value: this.scene,
     }) as ListBladeApi<Scene>;
