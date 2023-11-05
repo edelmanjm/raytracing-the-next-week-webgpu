@@ -32,6 +32,12 @@ export default class Renderer {
   // @ts-ignore
   outputBuffer: GPUBuffer;
   // @ts-ignore
+  outputReadBuffer: GPUBuffer;
+  // @ts-ignore
+  statsBuffer: GPUBuffer;
+  // @ts-ignore
+  statsReadBuffer: GPUBuffer;
+  // @ts-ignore
   materialsBuffer: GPUBuffer;
   // @ts-ignore
   worldBuffer: GPUBuffer;
@@ -39,8 +45,6 @@ export default class Renderer {
   cameraIpBuffer: GPUBuffer;
   // @ts-ignore
   raytracingConfigBuffer: GPUBuffer;
-  // @ts-ignore
-  readBuffer: GPUBuffer;
   // @ts-ignore
   frame: ImageData;
 
@@ -61,6 +65,13 @@ export default class Renderer {
   scene: Scene;
   pane: Pane = new Pane();
   dirty: boolean = true;
+
+  // computeStats: Statistics;
+  stats = {
+    rayIntersectionCount: 0,
+    rayCastCount: 0,
+    frametime: 0,
+  };
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -131,6 +142,22 @@ export default class Renderer {
         Copy(cameraIpView.arrayBuffer, this.cameraIpBuffer.getMappedRange());
         this.cameraIpBuffer.unmap();
       }
+
+      // Stats buffers
+      {
+        const statsView = makeStructuredView(defs.storages.compute_stats);
+        this.statsBuffer = this.device.createBuffer({
+          size: statsView.arrayBuffer.byteLength,
+          usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+          mappedAtCreation: true,
+        });
+
+        const data = new Uint8Array(this.statsBuffer.getMappedRange());
+        for (let i = 0; i < statsView.arrayBuffer.byteLength; ++i) {
+          data[i] = 0x00;
+        }
+        this.statsBuffer.unmap();
+      }
     }
 
     // Raytracing config buffer
@@ -166,6 +193,7 @@ export default class Renderer {
         { binding: 2, resource: { buffer: this.worldBuffer } },
         { binding: 3, resource: { buffer: this.cameraIpBuffer } },
         { binding: 4, resource: { buffer: this.raytracingConfigBuffer } },
+        { binding: 5, resource: { buffer: this.statsBuffer } },
       ],
     });
   }
@@ -240,6 +268,29 @@ export default class Renderer {
       this.raytracingConfig.max_depth = ev.value;
       update();
     });
+
+    let stats = this.pane.addFolder({
+      title: 'Statistics',
+      expanded: true,
+    });
+
+    stats.addBinding(this.stats, 'frametime', {
+      label: 'Frametime (ms)',
+      readonly: true,
+      format: v => v.toFixed(1),
+    });
+
+    stats.addBinding(this.stats, 'rayCastCount', {
+      label: 'Rays Cast',
+      readonly: true,
+      format: v => v.toFixed(0),
+    });
+
+    stats.addBinding(this.stats, 'rayIntersectionCount', {
+      label: 'Nearest Ray Intersections',
+      readonly: true,
+      format: v => v.toFixed(0),
+    });
   }
 
   async initializeAPI(): Promise<void> {
@@ -263,17 +314,23 @@ export default class Renderer {
       this.outputBuffer = this.device.createBuffer({
         size: bufferNumElements * Uint32Array.BYTES_PER_ELEMENT,
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
-        // mappedAtCreation: true,
       });
-      // const data = new Uint32Array(this.outputBuffer.getMappedRange());
-      // for (let i = 0; i < bufferNumElements; ++i) {
-      //     data[i] = 0xFF0000FF;
-      // }
-      // this.outputBuffer.unmap();
 
       // Get a GPU buffer for reading in an unmapped state.
-      this.readBuffer = this.device.createBuffer({
+      this.outputReadBuffer = this.device.createBuffer({
         size: bufferNumElements * Uint32Array.BYTES_PER_ELEMENT,
+        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+      });
+    }
+
+    // Stats read buffer
+    {
+      const code: string = getShader(this.wgSize, this.width, this.height, 0, 0, 0);
+      const defs = makeShaderDataDefinitions(code);
+
+      const statsView = makeStructuredView(defs.storages.compute_stats);
+      this.statsReadBuffer = this.device.createBuffer({
+        size: statsView.arrayBuffer.byteLength,
         usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
       });
     }
@@ -340,6 +397,8 @@ export default class Renderer {
     }
 
     if (this.frameSamplesPerPixel.left > 0) {
+      let startTime = performance.now();
+
       let currSamplesPerPixel = Math.min(
         this.frameSamplesPerPixel.left,
         this.frameSamplesPerPixel.max,
@@ -394,9 +453,17 @@ export default class Renderer {
       encoder.copyBufferToBuffer(
         imageCopyBuffer.buffer,
         0,
-        this.readBuffer,
+        this.outputReadBuffer,
         0,
         this.canvas.width * this.canvas.height * Uint32Array.BYTES_PER_ELEMENT,
+      );
+
+      encoder.copyBufferToBuffer(
+        this.statsBuffer,
+        0,
+        this.statsReadBuffer,
+        0,
+        this.statsBuffer.size,
       );
 
       commandBuffers.push(encoder.finish());
@@ -404,13 +471,22 @@ export default class Renderer {
       this.queue.submit(commandBuffers);
 
       // Read buffer.
-      await this.readBuffer.mapAsync(GPUMapMode.READ);
+      await this.outputReadBuffer.mapAsync(GPUMapMode.READ);
       this.frame = new ImageData(
-        this.bgraToRgba(new Uint8ClampedArray(this.readBuffer.getMappedRange())),
+        this.bgraToRgba(new Uint8ClampedArray(this.outputReadBuffer.getMappedRange())),
         this.canvas.width,
         this.canvas.height,
       );
-      this.readBuffer.unmap();
+      this.outputReadBuffer.unmap();
+
+      // Stats read
+      await this.statsReadBuffer.mapAsync(GPUMapMode.READ);
+      const statsArray = new Uint32Array(this.statsReadBuffer.getMappedRange());
+      this.stats.rayIntersectionCount = statsArray[0];
+      this.stats.rayCastCount = statsArray[1];
+      this.statsReadBuffer.unmap();
+
+      this.stats['frametime'] = performance.now() - startTime;
     }
   }
 }
