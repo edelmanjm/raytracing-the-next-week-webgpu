@@ -52,7 +52,7 @@ export default class Renderer {
   raytracingConfig: RaytracingConfig = {
     // Antialiasing Requirement
     samples_per_pixel: 5,
-    max_depth: 25,
+    max_depth: 5,
     rand_seed: [Math.random(), Math.random(), Math.random(), Math.random()],
     weight: 0,
   };
@@ -110,13 +110,13 @@ export default class Renderer {
 
       // World buffer
       {
-        const worldView = makeStructuredView(defs.uniforms.world);
+        const worldView = makeStructuredView(defs.storages.world);
 
         worldView.set(scene.world);
 
         this.worldBuffer = this.device.createBuffer({
           size: worldView.arrayBuffer.byteLength,
-          usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_SRC,
+          usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
           mappedAtCreation: true,
         });
         Copy(worldView.arrayBuffer, this.worldBuffer.getMappedRange());
@@ -318,7 +318,7 @@ export default class Renderer {
   }
 
   frameSamplesPerPixel = {
-    max: 10, // Max per frame (constant)
+    max: 2, // Max per frame (constant)
     left: 0, // How many are left to process this frame
     done: 0, // How many processed so far
   };
