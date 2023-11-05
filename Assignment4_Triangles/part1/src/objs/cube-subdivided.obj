@@ -1,6 +1,5 @@
 # Blender 3.6.1
 # www.blender.org
-mtllib cube-subdivided.mtl
 o Cube
 v -1.213504 -1.000000 -1.475907
 v -1.213504 1.000000 -1.475907

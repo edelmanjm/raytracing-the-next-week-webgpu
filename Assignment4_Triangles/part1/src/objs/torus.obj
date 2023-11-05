@@ -1,6 +1,5 @@
 # Blender 3.6.1
 # www.blender.org
-mtllib torus.mtl
 o Torus.002
 v 1.136615 1.566150 -2.341184
 v 1.119220 1.647088 -2.372963

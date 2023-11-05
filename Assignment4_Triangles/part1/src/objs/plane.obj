@@ -1,6 +1,5 @@
 # Blender 3.6.1
 # www.blender.org
-mtllib plane.mtl
 o Plane
 v -5.221181 0.000000 5.221181
 v 5.221181 0.000000 5.221181

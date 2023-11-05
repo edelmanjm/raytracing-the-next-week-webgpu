@@ -1,6 +1,5 @@
 # Blender 3.6.1
 # www.blender.org
-mtllib icosphere.mtl
 o Icosphere
 v 0.000000 0.000000 -4.434815
 v 0.723607 0.552781 -3.909090

@@ -1,6 +1,5 @@
 # Blender 3.6.1
 # www.blender.org
-mtllib monkey.mtl
 o Suzanne
 v 0.442481 1.142776 -1.455748
 v -0.434890 1.145254 -1.450944

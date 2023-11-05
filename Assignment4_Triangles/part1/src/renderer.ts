@@ -75,12 +75,6 @@ export default class Renderer {
   }
 
   updatePipeline(scene: Scene, configOnly: boolean) {
-    const attributes: GPUVertexAttribute[] = [
-      { shaderLocation: 0, offset: 0, format: 'float32x3' },
-      { shaderLocation: 1, offset: 12, format: 'float32x3' },
-      { shaderLocation: 2, offset: 24, format: 'float32x2' },
-    ];
-
     const materials = scene.materials;
 
     const code: string = getShader(

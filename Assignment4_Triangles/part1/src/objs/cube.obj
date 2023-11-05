@@ -1,6 +1,5 @@
 # Blender 3.6.1
 # www.blender.org
-mtllib cube.mtl
 o Cube
 v -1.375141 -1.000000 -2.350429
 v -1.375141 1.000000 -2.350429

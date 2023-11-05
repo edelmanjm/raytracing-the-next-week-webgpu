@@ -1,6 +1,5 @@
 # Blender 3.6.1
 # www.blender.org
-mtllib halo.mtl
 o Torus.001
 v 1.415869 1.122735 -2.860675
 v 1.400742 1.263515 -2.912349
