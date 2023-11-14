@@ -437,7 +437,8 @@ fn hit_bvh(bvh_index: u32, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<functi
     // No recusion, so we can't use the BVH traversal from Shirley
     // Using a stack for now. Very good stackless algorithms exist, with some being more efficient
     // (see https://dl.acm.org/doi/10.5555/2977336.2977343 for a survey of other algos and a particularly fast algo)
-    // but wanted to start with something simpler.uniform
+    // but wanted to start with something simpler.
+    // TODO replace this
 
     var stack: array<i32, 1024>;
     var size: u32 = 1;
