@@ -225,7 +225,7 @@ export default class Renderer {
 
     const finalScene = new FinalScene();
     const meshShowcase = new MeshShowcase();
-    this.scene = new BvhTest();
+    this.scene = fourSphereOptions[0].value;
 
     // View Requirement
     let sceneBlade = this.pane.addBlade({

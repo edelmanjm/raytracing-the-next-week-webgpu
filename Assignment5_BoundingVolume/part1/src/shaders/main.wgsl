@@ -295,26 +295,6 @@ struct aabb {
     max: vec3f
 }
 
-fn get_aabb_sphere(s: sphere) -> aabb {
-    let rvec = vec3f(s.radius, s.radius, s.radius);
-    return aabb(s.center - rvec, s.center + rvec);
-}
-
-fn get_aabb_aabbs(box0: aabb, box1: aabb) -> aabb {
-    return aabb(
-        vec3f(
-            min(box0.min.x, box1.min.x),
-            min(box0.min.y, box1.min.y),
-            min(box0.min.z, box1.min.z)
-        ),
-        vec3f(
-            max(box0.max.x, box1.max.x),
-            max(box0.max.y, box1.max.y),
-            max(box0.max.z, box1.max.z)
-        )
-    );
-}
-
 fn hit_sphere(s: sphere, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hit_record>) -> bool {
     let oc = r.origin - s.center;
     let a = length_squared(r.direction);
@@ -479,8 +459,13 @@ fn hit_bvh(bvh_index: u32, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<functi
     var size: u32 = 1;
     stack[0] = i32(bvh_index);
 
+    var hit_anything: bool = false;
+    var temp_rec: hit_record;
+    var closest_so_far: f32 = ray_tmax;
+
     while (size > 0) {
-        let b: bvh = world.bvhs[size - 1];
+        let i = stack[size - 1];
+        let b: bvh = world.bvhs[i];
         size--;
 
         compute_stats.ray_cast_count++;
@@ -488,7 +473,11 @@ fn hit_bvh(bvh_index: u32, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<functi
             compute_stats.ray_intersection_count++;
             if (b.left_index < 0 && b.right_index < 0) {
                 // Leaf
-                return hit_hittables(b.sphere_index, b.mesh_index, r, ray_tmin, ray_tmax, rec);
+                if (hit_hittables(b.sphere_index, b.mesh_index, r, ray_tmin, closest_so_far, &temp_rec)) {
+                    hit_anything = true;
+                    closest_so_far = temp_rec.t;
+                    (*rec) = temp_rec;
+                }
             } else {
                 if (b.left_index >= 0) {
                     stack[size] = b.left_index;
@@ -502,7 +491,7 @@ fn hit_bvh(bvh_index: u32, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<functi
         }
     }
 
-    return false;
+    return hit_anything;
 }
 
 // End hittable objects

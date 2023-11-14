@@ -104,7 +104,7 @@ export class FourSphere implements Scene {
         break;
     }
 
-    this.world = new HittableList(
+    this.world = HittableList.fromGeometry(
       [
         { center: [0.0, 0.0, -1.0], radius: 0.5, mat: 0 },
         { center: [0.0, -100.5, -1.0], radius: 100, mat: 1 },
@@ -112,7 +112,6 @@ export class FourSphere implements Scene {
         { center: [1.0, 0.0, -1.0], radius: 0.5, mat: 3 },
         { center: [0.0, 1.0, -2.0], radius: 1.0, mat: 2 },
       ],
-      [],
       [],
     );
   }
@@ -179,7 +178,7 @@ export class FinalScene implements Scene {
     this.materials.push(Material.createMetal({ albedo: [0.7, 0.6, 0.5], fuzz: 0.0 }, 0.0));
     spheres.push({ center: [4, 1, 0], radius: 1.0, mat: this.materials.length - 1 });
 
-    this.world = new HittableList(spheres, [], []);
+    this.world = HittableList.fromGeometry(spheres, []);
   }
 }
 
@@ -206,7 +205,7 @@ export class MeshShowcase implements Scene {
   );
 
   constructor() {
-    this.world = new HittableList(
+    this.world = HittableList.fromGeometry(
       [
         { center: [-1.7, 1.0, -2.0], radius: 0.5, mat: 2 },
         { center: [1.7, 1.0, -2.0], radius: 0.5, mat: 4 },
@@ -216,7 +215,6 @@ export class MeshShowcase implements Scene {
         new Mesh(...readObj(torus), 3),
         new Mesh(...readObj(plane), 1),
       ],
-      [],
     );
   }
 }
