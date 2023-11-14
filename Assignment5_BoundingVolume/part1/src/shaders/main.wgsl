@@ -433,6 +433,41 @@ struct hittable_list {
 @group(0) @binding(2)
 var<storage> world: hittable_list;
 
+fn hit_hittables(sphere_index: i32, mesh_index: i32, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hit_record>) -> bool {
+    var hit_anything: bool = false;
+    var temp_rec: hit_record;
+    var closest_so_far: f32 = ray_tmax;
+
+    if (sphere_index >= 0) {
+        compute_stats.ray_cast_count++;
+        if (hit_sphere(world.spheres[sphere_index], r, ray_tmin, closest_so_far, &temp_rec)) {
+            compute_stats.ray_intersection_count += 1;
+            hit_anything = true;
+            closest_so_far = temp_rec.t;
+            (*rec) = temp_rec;
+        }
+    }
+
+    if (mesh_index >= 0) {
+        var current_mesh: mesh = world.meshes[mesh_index];
+        for (var i: u32 = 0; i < current_mesh.indices_length; i++) {
+            let i0 = current_mesh.indices[i][0];
+            let i1 = current_mesh.indices[i][1];
+            let i2 = current_mesh.indices[i][2];
+            compute_stats.ray_cast_count++;
+            if (hit_triangle(current_mesh.vertices[i0], current_mesh.vertices[i1], current_mesh.vertices[i2], current_mesh.mat, r, ray_tmin, closest_so_far, &temp_rec)) {
+                // FIXME program hangs when these are uncommented?? Whack
+//                compute_stats.ray_intersection_count += 1;
+//                hit_anything = true;
+//                closest_so_far = temp_rec.t;
+//                (*rec) = temp_rec;
+            }
+        }
+    }
+
+    return hit_anything;
+}
+
 fn hit_bvh(bvh_index: u32, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hit_record>) -> bool {
     // No recusion, so we can't use the BVH traversal from Shirley
     // Using a stack for now. Very good stackless algorithms exist, with some being more efficient
@@ -444,48 +479,16 @@ fn hit_bvh(bvh_index: u32, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<functi
     var size: u32 = 1;
     stack[0] = i32(bvh_index);
 
-    var temp_rec: hit_record;
-    var closest_so_far: f32 = ray_tmax;
-
     while (size > 0) {
         let b: bvh = world.bvhs[size - 1];
         size--;
 
         compute_stats.ray_cast_count++;
-        if (hit_aabb(b.box, r, ray_tmin, closest_so_far)) {
+        if (hit_aabb(b.box, r, ray_tmin, ray_tmax)) {
             compute_stats.ray_intersection_count++;
             if (b.left_index < 0 && b.right_index < 0) {
                 // Leaf
-                var hit_anything: bool = false;
-
-                if (b.sphere_index >= 0) {
-                    compute_stats.ray_cast_count++;
-                    if (hit_sphere(world.spheres[b.sphere_index], r, ray_tmin, closest_so_far, &temp_rec)) {
-                        compute_stats.ray_intersection_count += 1;
-                        hit_anything = true;
-                        closest_so_far = temp_rec.t;
-                        (*rec) = temp_rec;
-                    }
-                }
-
-                if (b.mesh_index >= 0) {
-                    var current_mesh: mesh = world.meshes[b.mesh_index];
-                    for (var i: u32 = 0; i < current_mesh.indices_length; i++) {
-                        let i0 = current_mesh.indices[i][0];
-                        let i1 = current_mesh.indices[i][1];
-                        let i2 = current_mesh.indices[i][2];
-                        compute_stats.ray_cast_count++;
-                        if (hit_triangle(current_mesh.vertices[i0], current_mesh.vertices[i1], current_mesh.vertices[i2], current_mesh.mat, r, ray_tmin, closest_so_far, &temp_rec)) {
-                            // FIXME program hangs when these are uncommented?? Whack
-//                            compute_stats.ray_intersection_count += 1;
-//                            hit_anything = true;
-//                            closest_so_far = temp_rec.t;
-//                            (*rec) = temp_rec;
-                        }
-                    }
-                }
-
-                return hit_anything;
+                return hit_hittables(b.sphere_index, b.mesh_index, r, ray_tmin, ray_tmax, rec);
             } else {
                 if (b.left_index >= 0) {
                     stack[size] = b.left_index;
