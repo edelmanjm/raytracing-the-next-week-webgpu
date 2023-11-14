@@ -20,6 +20,33 @@ export interface Vertex {
   v: number;
 }
 
+export interface Aabb {
+  min: vec3;
+  max: vec3;
+}
+
+export class Bvh {
+  box: Aabb;
+  left_index: number;
+  right_index: number;
+  sphere_index: number;
+  mesh_index: number;
+
+  constructor(
+    box: Aabb,
+    left_index: number,
+    right_index: number,
+    sphere_index: number,
+    mesh_index: number,
+  ) {
+    this.box = box;
+    this.left_index = left_index;
+    this.right_index = right_index;
+    this.sphere_index = sphere_index;
+    this.mesh_index = mesh_index;
+  }
+}
+
 export class Mesh {
   vertices: Vertex[];
   vertices_length: number;
@@ -43,9 +70,11 @@ export class Mesh {
 export class HittableList {
   spheres: Sphere[];
   meshes: Mesh[];
+  bvhs: Bvh[];
 
-  constructor(spheres: Sphere[], meshes: Mesh[]) {
+  constructor(spheres: Sphere[], meshes: Mesh[], bvhs: Bvh[]) {
     this.spheres = spheres;
     this.meshes = meshes;
+    this.bvhs = bvhs;
   }
 }

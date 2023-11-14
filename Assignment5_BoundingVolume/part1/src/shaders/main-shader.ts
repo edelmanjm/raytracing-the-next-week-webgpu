@@ -7,6 +7,7 @@ export function getShader(
   materialCount: number,
   sphereCount: number,
   meshCount: number,
+  bvhCount: number,
 ): string {
   const sphereCountOrOne = Math.max(sphereCount, 1);
   const meshCountOrOne = Math.max(meshCount, 1);

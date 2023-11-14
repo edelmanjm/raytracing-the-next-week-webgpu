@@ -1,5 +1,5 @@
 import { Material } from './copyable/materials.js';
-import { HittableList, Mesh, Sphere } from './copyable/hittable-list.js';
+import { Bvh, HittableList, Mesh, Sphere } from './copyable/hittable-list.js';
 import { CameraInitializeParameters } from './copyable/camera-initialize-parameters.js';
 import { glMatrix, vec3 } from 'gl-matrix';
 import { readObj } from './obj-reader.js';
@@ -113,6 +113,7 @@ export class FourSphere implements Scene {
         { center: [0.0, 1.0, -2.0], radius: 1.0, mat: 2 },
       ],
       [],
+      [],
     );
   }
 }
@@ -178,7 +179,7 @@ export class FinalScene implements Scene {
     this.materials.push(Material.createMetal({ albedo: [0.7, 0.6, 0.5], fuzz: 0.0 }, 0.0));
     spheres.push({ center: [4, 1, 0], radius: 1.0, mat: this.materials.length - 1 });
 
-    this.world = new HittableList(spheres, []);
+    this.world = new HittableList(spheres, [], []);
   }
 }
 
@@ -215,6 +216,34 @@ export class MeshShowcase implements Scene {
         new Mesh(...readObj(torus), 3),
         new Mesh(...readObj(plane), 1),
       ],
+      [],
+    );
+  }
+}
+
+export class BvhTest implements Scene {
+  shortName: string = 'bvh-test';
+  static description: string = 'BVH test';
+  materials = [
+    Material.createLambertian({ albedo: [0.0, 1.0, 0.0] }, 0.5), // Lambertian green
+  ];
+
+  world: HittableList;
+
+  cameraInitializationParameters: CameraInitializeParameters = new CameraInitializeParameters(
+    glMatrix.toRadian(50),
+    [0, 2, 3],
+    [0, 1, 0],
+    [0, 1, 0],
+    glMatrix.toRadian(0.1),
+    5,
+  );
+
+  constructor() {
+    this.world = new HittableList(
+      [{ center: [0.0, 0.0, -1.0], radius: 0.5, mat: 0 }],
+      [],
+      [new Bvh({ min: [-1, -1, -1], max: [1, 1, 1] }, -1, -1, 0, -1)],
     );
   }
 }

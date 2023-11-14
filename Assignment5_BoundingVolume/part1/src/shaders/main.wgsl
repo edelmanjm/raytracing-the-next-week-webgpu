@@ -290,6 +290,31 @@ struct mesh {
     mat: material_index,
 }
 
+struct aabb {
+    min: vec3f,
+    max: vec3f
+}
+
+fn get_aabb_sphere(s: sphere) -> aabb {
+    let rvec = vec3f(s.radius, s.radius, s.radius);
+    return aabb(s.center - rvec, s.center + rvec);
+}
+
+fn get_aabb_aabbs(box0: aabb, box1: aabb) -> aabb {
+    return aabb(
+        vec3f(
+            min(box0.min.x, box1.min.x),
+            min(box0.min.y, box1.min.y),
+            min(box0.min.z, box1.min.z)
+        ),
+        vec3f(
+            max(box0.max.x, box1.max.x),
+            max(box0.max.y, box1.max.y),
+            max(box0.max.z, box1.max.z)
+        )
+    );
+}
+
 fn hit_sphere(s: sphere, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hit_record>) -> bool {
     let oc = r.origin - s.center;
     let a = length_squared(r.direction);
@@ -368,45 +393,112 @@ fn hit_triangle(v0: vertex, v1: vertex, v2: vertex, mat: material_index, r: ray,
     return true;
 }
 
+fn hit_aabb(box: aabb, r: ray, ray_tmin: f32, ray_tmax: f32) -> bool {
+    for (var a: u32 = 0; a < 3; a++) {
+        let inv_d: f32 = 1 / r.direction[a];
+        let orig: f32 = r.origin[a];
+
+        var t0: f32 = (box.min[a] - orig) * inv_d;
+        var t1: f32 = (box.max[a] - orig) * inv_d;
+
+        if (inv_d < 0) {
+            let swap = t0;
+            t0 = t1;
+            t1 = swap;
+        }
+
+        if (min(t1, ray_tmax) <= max(t0, ray_tmin)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+struct bvh {
+    box: aabb,
+    // -1 if not a valid index
+    left_index: i32,
+    right_index: i32,
+    sphere_index: i32,
+    mesh_index: i32,
+}
+
 struct hittable_list {
     spheres: array<sphere, ${sphereCountOrOne}>,
-    meshes: array<mesh, ${meshCountOrOne}>
+    meshes: array<mesh, ${meshCountOrOne}>,
+    bvhs: array<bvh, ${bvhCount}>
 }
 
 @group(0) @binding(2)
 var<storage> world: hittable_list;
 
-fn hit_hittable_list(r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hit_record>) -> bool {
+fn hit_bvh(bvh_index: u32, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hit_record>) -> bool {
+    // No recusion, so we can't use the BVH traversal from Shirley
+    // Using a stack for now. Very good stackless algorithms exist, with some being more efficient
+    // (see https://dl.acm.org/doi/10.5555/2977336.2977343 for a survey of other algos and a particularly fast algo)
+    // but wanted to start with something simpler.uniform
+
+    var stack: array<i32, 1024>;
+    var size: u32 = 1;
+    stack[0] = i32(bvh_index);
+
     var temp_rec: hit_record;
-    var hit_anything: bool = false;
     var closest_so_far: f32 = ray_tmax;
 
-    for (var i: u32 = 0; i < ${sphereCount}; i++) {
-        if (hit_sphere(world.spheres[i], r, ray_tmin, closest_so_far, &temp_rec)) {
-            compute_stats.ray_intersection_count += 1;
-            hit_anything = true;
-            closest_so_far = temp_rec.t;
-            (*rec) = temp_rec;
-        }
-    }
+    while (size > 0) {
+        let b: bvh = world.bvhs[size - 1];
+        size--;
 
-    for (var mesh_index: u32 = 0; mesh_index < ${meshCount}; mesh_index++) {
-        var current_mesh: mesh = world.meshes[mesh_index];
-        for (var i: u32 = 0; i < current_mesh.indices_length; i++) {
-            let i0 = current_mesh.indices[i][0];
-            let i1 = current_mesh.indices[i][1];
-            let i2 = current_mesh.indices[i][2];
-            if (hit_triangle(current_mesh.vertices[i0], current_mesh.vertices[i1], current_mesh.vertices[i2], current_mesh.mat, r, ray_tmin, closest_so_far, &temp_rec)) {
-                compute_stats.ray_intersection_count += 1;
-                hit_anything = true;
-                closest_so_far = temp_rec.t;
-                (*rec) = temp_rec;
+        compute_stats.ray_cast_count++;
+        if (hit_aabb(b.box, r, ray_tmin, closest_so_far)) {
+            compute_stats.ray_intersection_count++;
+            if (b.left_index < 0 && b.right_index < 0) {
+                // Leaf
+                var hit_anything: bool = false;
+
+                if (b.sphere_index >= 0) {
+                    compute_stats.ray_cast_count++;
+                    if (hit_sphere(world.spheres[b.sphere_index], r, ray_tmin, closest_so_far, &temp_rec)) {
+                        compute_stats.ray_intersection_count += 1;
+                        hit_anything = true;
+                        closest_so_far = temp_rec.t;
+                        (*rec) = temp_rec;
+                    }
+                }
+
+                if (b.mesh_index >= 0) {
+                    var current_mesh: mesh = world.meshes[b.mesh_index];
+                    for (var i: u32 = 0; i < current_mesh.indices_length; i++) {
+                        let i0 = current_mesh.indices[i][0];
+                        let i1 = current_mesh.indices[i][1];
+                        let i2 = current_mesh.indices[i][2];
+                        compute_stats.ray_cast_count++;
+                        if (hit_triangle(current_mesh.vertices[i0], current_mesh.vertices[i1], current_mesh.vertices[i2], current_mesh.mat, r, ray_tmin, closest_so_far, &temp_rec)) {
+                            // FIXME program hangs when these are uncommented?? Whack
+//                            compute_stats.ray_intersection_count += 1;
+//                            hit_anything = true;
+//                            closest_so_far = temp_rec.t;
+//                            (*rec) = temp_rec;
+                        }
+                    }
+                }
+
+                return hit_anything;
+            } else {
+                if (b.left_index >= 0) {
+                    stack[size] = b.left_index;
+                    size++;
+                }
+                if (b.right_index >= 0) {
+                    stack[size] = b.right_index;
+                    size++;
+                }
             }
         }
     }
 
-    compute_stats.ray_cast_count += ${sphereCount} + ${meshCount};
-    return hit_anything;
+    return false;
 }
 
 // End hittable objects
@@ -561,7 +653,7 @@ fn ray_color(r: ray) -> color {
 
     // No recusion available
     for (var depth: u32 = 0; depth < config.max_depth; depth += 1) {
-        if (hit_hittable_list(current_ray, 0.001, infinity, &rec)) {
+        if (hit_bvh(0, current_ray, 0.001, infinity, &rec)) {
             var scattered: ray;
             var attenuation: color;
             if (scatter(rec.mat, current_ray, rec, &attenuation, &scattered)) {

@@ -1,6 +1,13 @@
 import { getShader } from './shaders/main-shader.js';
 import { makeShaderDataDefinitions, makeStructuredView } from 'webgpu-utils';
-import { FinalScene, Scene, FourSphere, FourSphereCameraPosition, MeshShowcase } from './scenes.js';
+import {
+  FinalScene,
+  Scene,
+  FourSphere,
+  FourSphereCameraPosition,
+  MeshShowcase,
+  BvhTest,
+} from './scenes.js';
 import { RaytracingConfig } from './copyable/raytracing-config.js';
 import { ListBladeApi, Pane } from 'tweakpane';
 import { vec4 } from 'gl-matrix';
@@ -56,7 +63,7 @@ export default class Renderer {
   raytracingConfig: RaytracingConfig = {
     // Antialiasing Requirement
     samples_per_pixel: 5,
-    max_depth: 5,
+    max_depth: 1,
     rand_seed: [Math.random(), Math.random(), Math.random(), Math.random()],
     weight: 0,
   };
@@ -95,6 +102,7 @@ export default class Renderer {
       materials.length,
       scene.world.spheres.length,
       scene.world.meshes.length,
+      scene.world.bvhs.length,
     );
     const defs = makeShaderDataDefinitions(code);
 
@@ -217,7 +225,7 @@ export default class Renderer {
 
     const finalScene = new FinalScene();
     const meshShowcase = new MeshShowcase();
-    this.scene = fourSphereOptions[0].value;
+    this.scene = new BvhTest();
 
     // View Requirement
     let sceneBlade = this.pane.addBlade({
@@ -260,7 +268,7 @@ export default class Renderer {
 
     let depthBinding = this.pane.addBinding(this.raytracingConfig, 'max_depth', {
       label: 'Max Ray Depth',
-      min: 2,
+      min: 1,
       max: 100,
       step: 1,
     });
@@ -325,7 +333,7 @@ export default class Renderer {
 
     // Stats read buffer
     {
-      const code: string = getShader(this.wgSize, this.width, this.height, 0, 0, 0);
+      const code: string = getShader(this.wgSize, this.width, this.height, 0, 0, 0, 0);
       const defs = makeShaderDataDefinitions(code);
 
       const statsView = makeStructuredView(defs.storages.compute_stats);
