@@ -436,11 +436,10 @@ fn hit_hittables(sphere_index: i32, mesh_index: i32, r: ray, ray_tmin: f32, ray_
             let i2 = current_mesh.indices[i][2];
             compute_stats.ray_cast_count++;
             if (hit_triangle(current_mesh.vertices[i0], current_mesh.vertices[i1], current_mesh.vertices[i2], current_mesh.mat, r, ray_tmin, closest_so_far, &temp_rec)) {
-                // FIXME program hangs when these are uncommented?? Whack
-//                compute_stats.ray_intersection_count += 1;
-//                hit_anything = true;
-//                closest_so_far = temp_rec.t;
-//                (*rec) = temp_rec;
+                compute_stats.ray_intersection_count += 1;
+                hit_anything = true;
+                closest_so_far = temp_rec.t;
+                (*rec) = temp_rec;
             }
         }
     }
