@@ -239,9 +239,9 @@ export class BvhTest implements Scene {
 
   constructor() {
     this.world = new HittableList(
-      [{ center: [0.0, 0.0, -1.0], radius: 0.5, mat: 0 }],
       [],
-      [new Bvh({ min: [-1, -1, -1], max: [1, 1, 1] }, -1, -1, 0, -1)],
+      [new Mesh(...readObj(plane), 0)],
+      [new Bvh({ min: [-2, -2, -2], max: [2, 2, 2] }, -1, -1, -1, 0)],
     );
   }
 }

@@ -83,6 +83,16 @@ export class Aabb {
   }
 }
 
+enum AabbType {
+  SPHERE,
+  MESH,
+}
+
+interface AabbEncapsulation {
+  box: Aabb;
+  type: AabbType;
+}
+
 export class Bvh {
   box: Aabb;
   left_index: number;
@@ -118,10 +128,24 @@ export class HittableList {
 
   static fromGeometry(spheres: Sphere[], meshes: Mesh[]) {
     const addIndex = <T>(values: T[]): Map<number, T> => new Map(values.map((v, i) => [i, v]));
+    const mappedSpheres = spheres.map(s => {
+      let potato: AabbEncapsulation = {
+        box: Aabb.fromSphere(s),
+        type: AabbType.SPHERE,
+      };
+      return potato;
+    });
+    const mappedMeshes = meshes.map(m => {
+      let potato: AabbEncapsulation = {
+        box: Aabb.fromMesh(m),
+        type: AabbType.MESH,
+      };
+      return potato;
+    });
     return new HittableList(
       spheres,
       meshes,
-      HittableList.buildBvh(addIndex(spheres.map(s => Aabb.fromSphere(s)))),
+      HittableList.buildBvh(addIndex([...mappedSpheres, ...mappedMeshes])),
     );
   }
 
@@ -131,20 +155,27 @@ export class HittableList {
    * @param meshes
    * @param startIndex The starting index for the left_index/right_index properties of the BVHs to be returned. Used for the recursive calls.
    */
-  static buildBvh(bbs: Map<number, Aabb>, startIndex: number = 0): Bvh[] {
+  static buildBvh(bbs: Map<number, AabbEncapsulation>, startIndex: number = 0): Bvh[] {
     if (bbs.size == 1) {
       let [i, bb] = Array.from(bbs.entries())[0];
-      // TODO sphere vs. mesh handling
-      return [new Bvh(bb, -1, -1, i, -1)];
+      switch (bb.type) {
+        case AabbType.MESH:
+          return [new Bvh(bb.box, -1, -1, -1, i)];
+        case AabbType.SPHERE:
+          return [new Bvh(bb.box, -1, -1, i, -1)];
+        default:
+          // Unreachable
+          break;
+      }
     } else {
-      const sorted: [number, Aabb][] = Array.from(bbs).sort(([i0, s0], [i1, s1]) => {
+      const sorted: [number, AabbEncapsulation][] = Array.from(bbs).sort(([i0, s0], [i1, s1]) => {
         const axis: number = Math.floor(Math.random() * 3);
 
         const center0: vec3 = vec3.create();
-        vec3.add(center0, s0.min, s0.max);
+        vec3.add(center0, s0.box.min, s0.box.max);
         vec3.scale(center0, center0, 0.5);
         const center1: vec3 = vec3.create();
-        vec3.add(center1, s1.min, s1.max);
+        vec3.add(center1, s1.box.min, s1.box.max);
         vec3.scale(center1, center1, 0.5);
 
         return center0[axis] - center1[axis];
