@@ -55,7 +55,7 @@ export default class Renderer {
   // @ts-ignore
   frame: ImageData;
 
-  wgSize = 256;
+  wgSize = 64;
   width: number;
   height: number;
   numGroups: number;
