@@ -57,6 +57,16 @@ export class Aabb {
     return new Aabb(vec3.sub(min, s.center, rvec), vec3.add(max, s.center, rvec));
   }
 
+  static fromMesh(m: Mesh): Aabb {
+    let xs: number[] = m.vertices.map(v => v.px);
+    let ys: number[] = m.vertices.map(v => v.py);
+    let zs: number[] = m.vertices.map(v => v.pz);
+    return new Aabb(
+      [Math.min(...xs), Math.min(...ys), Math.min(...zs)],
+      [Math.max(...xs), Math.max(...ys), Math.max(...zs)],
+    );
+  }
+
   static fromAabbs(box0: Aabb, box1: Aabb): Aabb {
     return new Aabb(
       [
@@ -111,7 +121,7 @@ export class HittableList {
     return new HittableList(
       spheres,
       meshes,
-      HittableList.buildBvh(addIndex(spheres), addIndex(meshes)),
+      HittableList.buildBvh(addIndex(spheres.map(s => Aabb.fromSphere(s)))),
     );
   }
 
@@ -121,38 +131,32 @@ export class HittableList {
    * @param meshes
    * @param startIndex The starting index for the left_index/right_index properties of the BVHs to be returned. Used for the recursive calls.
    */
-  static buildBvh(
-    spheres: Map<number, Sphere>,
-    meshes: Map<number, Mesh>,
-    startIndex: number = 0,
-  ): Bvh[] {
-    if (spheres.size + meshes.size == 1) {
-      if (spheres.size == 1) {
-        const [i, sphere] = Array.from(spheres.entries())[0];
-        return [new Bvh(Aabb.fromSphere(sphere), -1, -1, i, -1)];
-      } else if (meshes.size == 1) {
-        // TODO
-        return [];
-      }
+  static buildBvh(bbs: Map<number, Aabb>, startIndex: number = 0): Bvh[] {
+    if (bbs.size == 1) {
+      let [i, bb] = Array.from(bbs.entries())[0];
+      // TODO sphere vs. mesh handling
+      return [new Bvh(bb, -1, -1, i, -1)];
     } else {
-      // TODO mesh handling
-      const sorted: [number, Sphere][] = Array.from(spheres).sort(([i0, s0], [i1, s1]) => {
+      const sorted: [number, Aabb][] = Array.from(bbs).sort(([i0, s0], [i1, s1]) => {
         const axis: number = Math.floor(Math.random() * 3);
-        return s0.center[axis] - s1.center[axis];
+
+        const center0: vec3 = vec3.create();
+        vec3.add(center0, s0.min, s0.max);
+        vec3.scale(center0, center0, 0.5);
+        const center1: vec3 = vec3.create();
+        vec3.add(center1, s1.min, s1.max);
+        vec3.scale(center1, center1, 0.5);
+
+        return center0[axis] - center1[axis];
       });
 
       const leftStartIndex = startIndex + 1;
       const left: Bvh[] = this.buildBvh(
         new Map(sorted.slice(0, sorted.length / 2)),
-        new Map(),
         leftStartIndex,
       );
       const rightStartIndex = startIndex + left.length + 1;
-      const right: Bvh[] = this.buildBvh(
-        new Map(sorted.slice(sorted.length / 2)),
-        new Map(),
-        rightStartIndex,
-      );
+      const right: Bvh[] = this.buildBvh(new Map(sorted.slice(sorted.length / 2)), rightStartIndex);
 
       return [
         new Bvh(Aabb.fromAabbs(left[0].box, right[0].box), leftStartIndex, rightStartIndex, -1, -1),
