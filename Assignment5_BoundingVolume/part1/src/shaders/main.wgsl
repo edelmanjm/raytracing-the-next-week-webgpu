@@ -28,8 +28,8 @@ fn length_squared(v: vec3f) -> f32 {
 
 fn near_zero(v: vec3f) -> bool {
     // Return true if the vector is close to zero in all dimensions.
-    const s = 1e-8;
-    return length(v) < s;
+    let s = 1e-8;
+    return length(v) < 1e-8;
 }
 
 fn reflect(v: vec3f, n: vec3f) -> vec3f {
@@ -56,7 +56,7 @@ var<private> rnd : vec3u;
 
 // Initializes the random number generator.
 fn init_rand(invocation_id : vec3u, seed : vec3u) {
-  const A = vec3(1741651 * 1009,
+  let A = vec3(1741651 * 1009,
                  140893  * 1609 * 13,
                  6521    * 983  * 7 * 2);
   rnd = (invocation_id * A) ^ seed;
@@ -64,7 +64,7 @@ fn init_rand(invocation_id : vec3u, seed : vec3u) {
 
 // Returns a random number between 0 and 1.
 fn random_f32() -> f32 {
-  const C = vec3(60493  * 9377,
+  let C = vec3(60493  * 9377,
                  11279  * 2539 * 23,
                  7919   * 631  * 5 * 3);
 
@@ -540,7 +540,7 @@ fn camera_initialize(cam: ptr<function, camera>, p: camera_initialize_parameters
     (*cam).defocus_angle = p.defocus_angle;
     (*cam).focus_dist = p.focus_dist;
 
-    const aspect_ratio: f32 = ${width} / ${height};
+    let aspect_ratio: f32 = ${width} / ${height};
 
     let focal_length = length(p.lookfrom - p.lookat);
     let h = tan(p.vfov / 2);
