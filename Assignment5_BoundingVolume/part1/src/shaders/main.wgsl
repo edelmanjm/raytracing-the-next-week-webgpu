@@ -69,7 +69,7 @@ fn random_f32() -> f32 {
                  7919   * 631  * 5 * 3);
 
   rnd = (rnd * C) ^ (rnd.yzx >> vec3(4u));
-  return f32(rnd.x ^ rnd.y) / f32(0xffffffff);
+  return f32(rnd.x ^ rnd.y) / f32(0x7fffffff);
 }
 
 fn random_range_f32(min: f32, max: f32) -> f32 {
@@ -697,7 +697,7 @@ fn write_color(offset: u32, pixel_color: color) {
 fn main(
     @builtin(global_invocation_id) global_invocation_id : vec3<u32>,
     ) {
-        init_rand(global_invocation_id, vec3u(config.rand_seed.xyz * 0xffffffff));
+        init_rand(global_invocation_id, vec3u(config.rand_seed.xyz * 0x7fffffff));
 
         var cam: camera;
         camera_initialize(&cam, camera_ip);
