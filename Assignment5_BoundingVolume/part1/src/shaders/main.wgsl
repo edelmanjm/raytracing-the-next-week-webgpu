@@ -85,21 +85,25 @@ fn random_range_vec3f(min: f32, max: f32) -> vec3f {
 }
 
 fn random_in_unit_sphere() -> vec3f {
-    loop {
-        let p = random_range_vec3f(-1, 1);
-        if (length_squared(p) < 1) {
+    // This enforces termination, which is required in WGSL
+    for (var i = 0; i < 4; i++) {
+        let p: vec3f = random_range_vec3f(-1.0, 1.0);
+        if (length_squared(p) < 1.0) {
             return p;
         }
     }
+    return vec3f(0.1, 0.1, 0.1);
 }
 
 fn random_in_unit_disk() -> vec3f {
-    loop {
-        let p = vec3f(random_range_f32(-1, 1), random_range_f32(-1, 1), 0);
-        if (length_squared(p) < 1) {
+    // This enforces termination, which is required in WGSL
+    for (var i = 0; i < 4; i++) {
+        let p: vec3f = vec3f(random_range_f32(-1.0, 1.0), random_range_f32(-1.0, 1.0), 0.0);
+        if (length_squared(p) < 1.0) {
             return p;
         }
     }
+    return vec3f(0.1, 0.1, 0.0);
 }
 
 fn random_unit_vector() -> vec3f {
