@@ -33,7 +33,7 @@ fn near_zero(v: vec3f) -> bool {
 }
 
 fn reflect(v: vec3f, n: vec3f) -> vec3f {
-    return v - 2 * dot(v, n) * n;
+    return v - 2.0 * dot(v, n) * n;
 }
 
 fn refract(uv: vec3f, n: vec3f, etai_over_etat: f32) -> vec3f {
@@ -56,17 +56,17 @@ var<private> rnd : vec3u;
 
 // Initializes the random number generator.
 fn init_rand(invocation_id : vec3u, seed : vec3u) {
-  let A = vec3(1741651 * 1009,
-                 140893  * 1609 * 13,
-                 6521    * 983  * 7 * 2);
+  let A = vec3u(1741651u * 1009u,
+                 140893u * 1609u * 13u,
+                 6521u   *  983u *  7u * 2u);
   rnd = (invocation_id * A) ^ seed;
 }
 
 // Returns a random number between 0 and 1.
 fn random_f32() -> f32 {
-  let C = vec3(60493  * 9377,
-                 11279  * 2539 * 23,
-                 7919   * 631  * 5 * 3);
+  let C = vec3u(60493u * 9377u,
+                11279u * 2539u * 23u,
+                 7919u * 631u  *  5u * 3u);
 
   rnd = (rnd * C) ^ (rnd.yzx >> vec3(4u));
   return f32(rnd.x ^ rnd.y) / f32(0x7fffffff);
@@ -122,9 +122,9 @@ fn random_on_hemisphere(normal: vec3f) -> vec3f {
 alias material_index = u32;
 
 alias material_type = u32;
-const MATERIAL_TYPE_LAMBERTIAN : material_type = 0;
-const MATERIAL_TYPE_METAL : material_type = 1;
-const MATERIAL_TYPE_DIELECTRIC : material_type = 2;
+const MATERIAL_TYPE_LAMBERTIAN: material_type = 0u;
+const MATERIAL_TYPE_METAL: material_type = 1u;
+const MATERIAL_TYPE_DIELECTRIC: material_type = 2u;
 
 struct material_lambertian {
     albedo: color,
@@ -153,9 +153,9 @@ var<uniform> materials: array<material, ${materialCount}>;
 
 fn reflectance(cosine: f32, ref_idx: f32) -> f32 {
     // Use Schlick's approximation for reflectance.
-    var r0 = (1 - ref_idx) / (1 + ref_idx);
+    var r0 = (1.0 - ref_idx) / (1.0 + ref_idx);
     r0 = r0 * r0;
-    return r0 + (1 - r0) * pow((1 - cosine), 5);
+    return r0 + (1.0 - r0) * pow((1.0 - cosine), 5.0);
 }
 
 // Returns the percentage of light that was scattered
@@ -163,7 +163,7 @@ fn scatter(mat_i: material_index, r_in: ray, rec: hit_record, attenuation: ptr<f
     let mat = materials[mat_i];
     switch (mat.ty) {
         // case MATERIAL_TYPE_LAMBERTIAN: {
-        case 0: {
+        case 0u: {
             var scatter_direction = rec.normal + random_unit_vector();
 
             if (near_zero(scatter_direction)) {
@@ -175,16 +175,16 @@ fn scatter(mat_i: material_index, r_in: ray, rec: hit_record, attenuation: ptr<f
             return true;
         }
         // case MATERIAL_TYPE_METAL: {
-        case 1: {
+        case 1u: {
             let reflected: vec3f = reflect(normalize(r_in.direction), rec.normal);
             (*scattered) = ray(rec.p,
                                reflected + mat.metal.fuzz * random_unit_vector(),
                                r_in.strength * (1.0 - mat.absorption));
             (*attenuation) = mat.metal.albedo * r_in.strength;
-            return dot((*scattered).direction, rec.normal) > 0;
+            return dot((*scattered).direction, rec.normal) > 0.0;
         }
         // case MATERIAL_TYPE_DIELECTRIC: {
-        case 2: {
+        case 2u: {
             (*attenuation) = color(1.0, 1.0, 1.0) * r_in.strength;
             var refraction_ratio: f32;
             if (rec.front_face) {
@@ -243,7 +243,7 @@ fn set_face_normal(record: ptr<function, hit_record>, r: ray, outward_normal: ve
     // Sets the hit record normal vector.
     // NOTE: the parameter outward_normal is assumed to have unit length.
 
-    (*record).front_face = dot(r.direction, outward_normal) < 0;
+    (*record).front_face = dot(r.direction, outward_normal) < 0.0;
     if ((*record).front_face) {
         (*record).normal = outward_normal;
     } else {
@@ -302,7 +302,7 @@ fn hit_sphere(s: sphere, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function
     let c = length_squared(oc) - s.radius * s.radius;
 
     let discriminant = half_b * half_b - a * c;
-    if (discriminant < 0) {
+    if (discriminant < 0.0) {
         return false;
     }
     let sqrtd = sqrt(discriminant);
@@ -346,21 +346,21 @@ fn hit_triangle(v0: vertex, v1: vertex, v2: vertex, mat: material_index, r: ray,
             return false;
         }
     }
-    let invDet: f32 = 1 / det;
+    let inv_det: f32 = 1.0 / det;
 
     let tvec: vec3f = r.origin - get_position(v0);
-    let u: f32 = dot(tvec, pvec) * invDet;
-    if (u < 0 || u > 1) {
+    let u: f32 = dot(tvec, pvec) * inv_det;
+    if (u < 0.0 || u > 1.0) {
         return false;
     }
 
     let qvec: vec3f = cross(tvec, v0v1);
-    let v: f32 = dot(r.direction, qvec) * invDet;
-    if (v < 0 || u + v > 1) {
+    let v: f32 = dot(r.direction, qvec) * inv_det;
+    if (v < 0.0 || u + v > 1.0) {
         return false;
     }
 
-    let t: f32 = dot(v0v2, qvec) * invDet;
+    let t: f32 = dot(v0v2, qvec) * inv_det;
     if (t <= ray_tmin || ray_tmax <= t) {
         return false;
     }
@@ -374,14 +374,14 @@ fn hit_triangle(v0: vertex, v1: vertex, v2: vertex, mat: material_index, r: ray,
 }
 
 fn hit_aabb(box: aabb, r: ray, ray_tmin: f32, ray_tmax: f32) -> bool {
-    for (var a: u32 = 0; a < 3; a++) {
-        let inv_d: f32 = 1 / r.direction[a];
+    for (var a: u32 = 0u; a < 3u; a++) {
+        let inv_d: f32 = 1.0 / r.direction[a];
         let orig: f32 = r.origin[a];
 
         var t0: f32 = (box.min[a] - orig) * inv_d;
         var t1: f32 = (box.max[a] - orig) * inv_d;
 
-        if (inv_d < 0) {
+        if (inv_d < 0.0) {
             let swap = t0;
             t0 = t1;
             t1 = swap;
@@ -421,7 +421,7 @@ fn hit_hittables(sphere_index: i32, mesh_index: i32, r: ray, ray_tmin: f32, ray_
     if (sphere_index >= 0) {
         compute_stats.ray_cast_count++;
         if (hit_sphere(world.spheres[sphere_index], r, ray_tmin, closest_so_far, &temp_rec)) {
-            compute_stats.ray_intersection_count += 1;
+            compute_stats.ray_intersection_count++;
             hit_anything = true;
             closest_so_far = temp_rec.t;
             (*rec) = temp_rec;
@@ -430,13 +430,13 @@ fn hit_hittables(sphere_index: i32, mesh_index: i32, r: ray, ray_tmin: f32, ray_
 
     if (mesh_index >= 0) {
         var current_mesh: mesh = world.meshes[mesh_index];
-        for (var i: u32 = 0; i < current_mesh.indices_length; i++) {
+        for (var i: u32 = 0u; i < current_mesh.indices_length; i++) {
             let i0 = current_mesh.indices[i][0];
             let i1 = current_mesh.indices[i][1];
             let i2 = current_mesh.indices[i][2];
             compute_stats.ray_cast_count++;
             if (hit_triangle(current_mesh.vertices[i0], current_mesh.vertices[i1], current_mesh.vertices[i2], current_mesh.mat, r, ray_tmin, closest_so_far, &temp_rec)) {
-                compute_stats.ray_intersection_count += 1;
+                compute_stats.ray_intersection_count++;
                 hit_anything = true;
                 closest_so_far = temp_rec.t;
                 (*rec) = temp_rec;
@@ -455,15 +455,15 @@ fn hit_bvh(bvh_index: u32, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<functi
     // TODO replace this
 
     var stack: array<i32, 1024>;
-    var size: u32 = 1;
+    var size: u32 = 1u;
     stack[0] = i32(bvh_index);
 
     var hit_anything: bool = false;
     var temp_rec: hit_record;
     var closest_so_far: f32 = ray_tmax;
 
-    while (size > 0) {
-        let i = stack[size - 1];
+    while (size > 0u) {
+        let i = stack[size - 1u];
         let b: bvh = world.bvhs[i];
         size--;
 
@@ -534,17 +534,17 @@ struct camera_initialize_parameters {
 var<uniform> camera_ip: camera_initialize_parameters;
 
 fn camera_initialize(cam: ptr<function, camera>, p: camera_initialize_parameters) {
-    (*cam).width = ${width};
-    (*cam).height = ${height};
+    (*cam).width = ${width}u;
+    (*cam).height = ${height}u;
     (*cam).origin = p.lookfrom;
     (*cam).defocus_angle = p.defocus_angle;
     (*cam).focus_dist = p.focus_dist;
 
-    let aspect_ratio: f32 = ${width} / ${height};
+    let aspect_ratio: f32 = ${width}f / ${height}f;
 
     let focal_length = length(p.lookfrom - p.lookat);
-    let h = tan(p.vfov / 2);
-    let viewport_height = 2 * h * focal_length;
+    let h = tan(p.vfov / 2.0);
+    let viewport_height = 2.0 * h * focal_length;
     let viewport_width = aspect_ratio * viewport_height;
 
     // Calculate the u,v,w unit basis vectors for the camera coordinate frame.
@@ -557,15 +557,15 @@ fn camera_initialize(cam: ptr<function, camera>, p: camera_initialize_parameters
     (*cam).viewport_v = viewport_height * (*cam).v; // Vector down viewport vertical edge
 
     // Calculate the horizontal and vertical delta vectors to the next pixel.
-    (*cam).pixel_delta_u = (*cam).viewport_u / ${width};
-    (*cam).pixel_delta_v = (*cam).viewport_v / ${height};
+    (*cam).pixel_delta_u = (*cam).viewport_u / ${width}f;
+    (*cam).pixel_delta_v = (*cam).viewport_v / ${height}f;
 
     // Calculate the location of the upper left pixel.
-    let viewport_upper_left = (*cam).origin - (focal_length * (*cam).w) - (*cam).viewport_u / 2 - (*cam).viewport_v / 2;
+    let viewport_upper_left = (*cam).origin - (focal_length * (*cam).w) - (*cam).viewport_u / 2.0 - (*cam).viewport_v / 2.0;
     (*cam).pixel00_loc = viewport_upper_left + 0.5 * ((*cam).pixel_delta_u + (*cam).pixel_delta_v);
 
     // Calculate the camera defocus disk basis vectors.
-    let defocus_radius = p.focus_dist * tan(p.defocus_angle / 2);
+    let defocus_radius = p.focus_dist * tan(p.defocus_angle / 2.0);
     (*cam).defocus_disk_u = (*cam).u * defocus_radius;
     (*cam).defocus_disk_v = (*cam).v * defocus_radius;
 }
@@ -591,7 +591,7 @@ fn get_ray(cam: ptr<function, camera>, i: f32, j: f32) -> ray {
     let pixel_sample = pixel_center + pixel_sample_square(cam);
 
     var ray_origin: vec3f;
-    if ((*cam).defocus_angle <= 0) {
+    if ((*cam).defocus_angle <= 0.0) {
         ray_origin = (*cam).origin;
     } else {
         ray_origin = defocus_disk_sample(cam);
@@ -607,8 +607,8 @@ fn render(cam: ptr<function, camera>, offset: u32, samples_per_pixel: u32) -> co
     let y = f32((*cam).height) - f32(offset / (*cam).width); // Flip Y so Y+ is up
 
     // Render
-    var pixel_color = color(0,0,0);
-    for (var sample: u32 = 0; sample < samples_per_pixel; sample += 1) {
+    var pixel_color = color(0.0, 0.0, 0.0);
+    for (var sample: u32 = 0u; sample < samples_per_pixel; sample++) {
         let r: ray = get_ray(cam, x, y);
         pixel_color += ray_color(r);
     }
@@ -644,8 +644,8 @@ fn ray_color(r: ray) -> color {
     var c: color = color(1.0, 1.0, 1.0);
 
     // No recusion available
-    for (var depth: u32 = 0; depth < config.max_depth; depth += 1) {
-        if (hit_bvh(0, current_ray, 0.001, infinity, &rec)) {
+    for (var depth: u32 = 0u; depth < config.max_depth; depth++) {
+        if (hit_bvh(0u, current_ray, 0.001, infinity, &rec)) {
             var scattered: ray;
             var attenuation: color;
             if (scatter(rec.mat, current_ray, rec, &attenuation, &scattered)) {
@@ -671,16 +671,16 @@ fn color_to_u32(c : color) -> u32 {
     let a = 255u;
 
     // bgra8unorm
-    return (a << 24) | (r << 16) | (g << 8) | b;
+    return (a << 24u) | (r << 16u) | (g << 8u) | b;
 
     // rgba8unorm
     // return (a << 24) | (b << 16) | (g << 8) | r;
 }
 
 fn u32_to_color(c: u32) -> color {
-    let r = f32((c >> 16) & 0xff) / 255.0;
-    let g = f32((c >> 8) & 0xff) / 255.0;
-    let b = f32((c >> 0) & 0xff) / 255.0;
+    let r = f32((c >> 16u) & 0xffu) / 255.0;
+    let g = f32((c >> 8u) & 0xffu) / 255.0;
+    let b = f32((c >> 0u) & 0xffu) / 255.0;
     return color(r, g, b);
 }
 
@@ -690,14 +690,14 @@ fn write_color(offset: u32, pixel_color: color) {
 
     var last = u32_to_color(output[offset]);
     var w = config.weight;
-    output[offset] = color_to_u32(last * (1 - w) + c * w);
+    output[offset] = color_to_u32(last * (1.0 - w) + c * w);
 }
 
 @compute @workgroup_size(${wgSize})
 fn main(
     @builtin(global_invocation_id) global_invocation_id : vec3<u32>,
     ) {
-        init_rand(global_invocation_id, vec3u(config.rand_seed.xyz * 0x7fffffff));
+        init_rand(global_invocation_id, vec3u(config.rand_seed.xyz * f32(0x7fffffff)));
 
         var cam: camera;
         camera_initialize(&cam, camera_ip);
