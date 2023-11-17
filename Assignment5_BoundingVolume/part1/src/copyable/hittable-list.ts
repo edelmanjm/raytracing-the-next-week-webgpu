@@ -127,7 +127,7 @@ export class HittableList {
   }
 
   static fromGeometry(spheres: Sphere[], meshes: Mesh[]) {
-    const addIndex = <T>(values: T[]): Map<number, T> => new Map(values.map((v, i) => [i, v]));
+    const addIndex = <T>(values: T[]): [number, T][] => values.map((v, i) => [i, v]);
     const mappedSpheres = spheres.map(s => {
       let potato: AabbEncapsulation = {
         box: Aabb.fromSphere(s),
@@ -145,7 +145,7 @@ export class HittableList {
     return new HittableList(
       spheres,
       meshes,
-      HittableList.buildBvh(addIndex([...mappedSpheres, ...mappedMeshes])),
+      HittableList.buildBvh([...addIndex(mappedSpheres), ...addIndex(mappedMeshes)]),
     );
   }
 
@@ -155,9 +155,9 @@ export class HittableList {
    * @param meshes
    * @param startIndex The starting index for the left_index/right_index properties of the BVHs to be returned. Used for the recursive calls.
    */
-  static buildBvh(bbs: Map<number, AabbEncapsulation>, startIndex: number = 0): Bvh[] {
-    if (bbs.size == 1) {
-      let [i, bb] = Array.from(bbs.entries())[0];
+  static buildBvh(bbs: [number, AabbEncapsulation][], startIndex: number = 0): Bvh[] {
+    if (bbs.length == 1) {
+      let [i, bb] = bbs[0];
       switch (bb.type) {
         case AabbType.MESH:
           return [new Bvh(bb.box, -1, -1, -1, i)];
@@ -182,12 +182,9 @@ export class HittableList {
       });
 
       const leftStartIndex = startIndex + 1;
-      const left: Bvh[] = this.buildBvh(
-        new Map(sorted.slice(0, sorted.length / 2)),
-        leftStartIndex,
-      );
+      const left: Bvh[] = this.buildBvh(sorted.slice(0, sorted.length / 2), leftStartIndex);
       const rightStartIndex = startIndex + left.length + 1;
-      const right: Bvh[] = this.buildBvh(new Map(sorted.slice(sorted.length / 2)), rightStartIndex);
+      const right: Bvh[] = this.buildBvh(sorted.slice(sorted.length / 2), rightStartIndex);
 
       return [
         new Bvh(Aabb.fromAabbs(left[0].box, right[0].box), leftStartIndex, rightStartIndex, -1, -1),
