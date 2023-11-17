@@ -422,7 +422,7 @@ fn hit_hittables(sphere_index: i32, mesh_index: i32, r: ray, ray_tmin: f32, ray_
     var temp_rec: hit_record;
     var closest_so_far: f32 = ray_tmax;
 
-    if (sphere_index >= 0) {
+    if (sphere_index >= 0 && sphere_index < ${sphereCount}) {
         compute_stats.ray_cast_count++;
         if (hit_sphere(world.spheres[sphere_index], r, ray_tmin, closest_so_far, &temp_rec)) {
             compute_stats.ray_intersection_count++;
@@ -432,7 +432,7 @@ fn hit_hittables(sphere_index: i32, mesh_index: i32, r: ray, ray_tmin: f32, ray_
         }
     }
 
-    if (mesh_index >= 0) {
+    if (mesh_index >= 0 && mesh_index < ${meshCount}) {
         var current_mesh: mesh = world.meshes[mesh_index];
         for (var i: u32 = 0u; i < current_mesh.indices_length; i++) {
             let i0 = current_mesh.indices[i][0];
