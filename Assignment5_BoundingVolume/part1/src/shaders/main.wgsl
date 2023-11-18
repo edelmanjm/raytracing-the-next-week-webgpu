@@ -451,6 +451,61 @@ fn hit_hittables(sphere_index: i32, mesh_index: i32, r: ray, ray_tmin: f32, ray_
     return hit_anything;
 }
 
+fn hit_hittable_list(r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hit_record>) -> bool {
+    var temp_rec: hit_record;
+    var hit_anything: bool = false;
+    var closest_so_far: f32 = ray_tmax;
+
+    for (var sphere_index: u32 = 0; sphere_index < ${sphereCount}; sphere_index++) {
+        if (hit_hittables(i32(sphere_index), -1, r, ray_tmin, closest_so_far, &temp_rec)) {
+            hit_anything = true;
+            closest_so_far = temp_rec.t;
+            (*rec) = temp_rec;
+        }
+    }
+
+    for (var mesh_index: u32 = 0; mesh_index < ${meshCount}; mesh_index++) {
+        if (hit_hittables(-1, i32(mesh_index), r, ray_tmin, closest_so_far, &temp_rec)) {
+            hit_anything = true;
+            closest_so_far = temp_rec.t;
+            (*rec) = temp_rec;
+        }
+    }
+
+    return hit_anything;
+
+//    var temp_rec: hit_record;
+//    var hit_anything: bool = false;
+//    var closest_so_far: f32 = ray_tmax;
+//
+//    for (var i: u32 = 0; i < ${sphereCount}; i++) {
+//        if (hit_sphere(world.spheres[i], r, ray_tmin, closest_so_far, &temp_rec)) {
+//            compute_stats.ray_intersection_count += 1;
+//            hit_anything = true;
+//            closest_so_far = temp_rec.t;
+//            (*rec) = temp_rec;
+//        }
+//    }
+//
+//    for (var mesh_index: u32 = 0; mesh_index < ${meshCount}; mesh_index++) {
+//        var current_mesh: mesh = world.meshes[mesh_index];
+//        for (var i: u32 = 0; i < current_mesh.indices_length; i++) {
+//            let i0 = current_mesh.indices[i][0];
+//            let i1 = current_mesh.indices[i][1];
+//            let i2 = current_mesh.indices[i][2];
+//            if (hit_triangle(current_mesh.vertices[i0], current_mesh.vertices[i1], current_mesh.vertices[i2], current_mesh.mat, r, ray_tmin, closest_so_far, &temp_rec)) {
+//                compute_stats.ray_intersection_count += 1;
+//                hit_anything = true;
+//                closest_so_far = temp_rec.t;
+//                (*rec) = temp_rec;
+//            }
+//        }
+//    }
+//
+//    compute_stats.ray_cast_count += ${sphereCount} + ${meshCount};
+//    return hit_anything;
+}
+
 fn hit_bvh(bvh_index: u32, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hit_record>) -> bool {
     // No recusion, so we can't use the BVH traversal from Shirley
     // Using a stack for now. Very good stackless algorithms exist, with some being more efficient
@@ -458,7 +513,7 @@ fn hit_bvh(bvh_index: u32, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<functi
     // but wanted to start with something simpler.
     // TODO replace this
 
-    var stack: array<i32, 1024>;
+    var stack: array<i32, 32>;
     var size: u32 = 1u;
     stack[0] = i32(bvh_index);
 
@@ -468,27 +523,29 @@ fn hit_bvh(bvh_index: u32, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<functi
 
     while (size > 0u) {
         let i = stack[size - 1u];
-        let b: bvh = world.bvhs[i];
-        size--;
+        if (i < ${bvhCount}) {
+            let b: bvh = world.bvhs[i];
+            size--;
 
-        compute_stats.ray_cast_count++;
-        if (hit_aabb(b.box, r, ray_tmin, ray_tmax)) {
-            compute_stats.ray_intersection_count++;
-            if (b.left_index < 0 && b.right_index < 0) {
-                // Leaf
-                if (hit_hittables(b.sphere_index, b.mesh_index, r, ray_tmin, closest_so_far, &temp_rec)) {
-                    hit_anything = true;
-                    closest_so_far = temp_rec.t;
-                    (*rec) = temp_rec;
-                }
-            } else {
-                if (b.left_index >= 0) {
-                    stack[size] = b.left_index;
-                    size++;
-                }
-                if (b.right_index >= 0) {
-                    stack[size] = b.right_index;
-                    size++;
+            compute_stats.ray_cast_count++;
+            if (hit_aabb(b.box, r, ray_tmin, ray_tmax)) {
+                compute_stats.ray_intersection_count++;
+                if (b.left_index < 0 && b.right_index < 0) {
+                    // Leaf
+                    if (hit_hittables(b.sphere_index, b.mesh_index, r, ray_tmin, closest_so_far, &temp_rec)) {
+                        hit_anything = true;
+                        closest_so_far = temp_rec.t;
+                        (*rec) = temp_rec;
+                    }
+                } else {
+                    if (b.left_index >= 0) {
+                        stack[size] = b.left_index;
+                        size++;
+                    }
+                    if (b.right_index >= 0) {
+                        stack[size] = b.right_index;
+                        size++;
+                    }
                 }
             }
         }
@@ -632,6 +689,8 @@ struct raytracer_config {
     max_depth: u32,
     rand_seed: vec4f,
     weight: f32,
+    // Workaround for bool members not being copyable via a buffer
+    use_bvhs: u32
 }
 
 @group(0) @binding(4)
@@ -649,7 +708,14 @@ fn ray_color(r: ray) -> color {
 
     // No recusion available
     for (var depth: u32 = 0u; depth < config.max_depth; depth++) {
-        if (hit_bvh(0u, current_ray, 0.001, infinity, &rec)) {
+        // I don't trust short circuiting for WGSL yet lol
+        var hit: bool;
+        if (config.use_bvhs > 0) {
+            hit = hit_bvh(0u, current_ray, 0.001, infinity, &rec);
+        } else {
+            hit = hit_hittable_list(current_ray, 0.001, infinity, &rec);
+        }
+        if (hit) {
             var scattered: ray;
             var attenuation: color;
             if (scatter(rec.mat, current_ray, rec, &attenuation, &scattered)) {

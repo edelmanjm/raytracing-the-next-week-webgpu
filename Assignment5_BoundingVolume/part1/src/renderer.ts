@@ -66,6 +66,7 @@ export default class Renderer {
     max_depth: 5,
     rand_seed: [Math.random(), Math.random(), Math.random(), Math.random()],
     weight: 0,
+    use_bvhs: 0,
   };
   infiniteSamples: boolean = false;
   // @ts-ignore
@@ -277,6 +278,14 @@ export default class Renderer {
       update();
     });
 
+    let useBvhsBinding = this.pane.addBinding({ useBvhs: false }, 'useBvhs', {
+      label: 'Use BVHs',
+    });
+    useBvhsBinding.on('change', ev => {
+      this.raytracingConfig.use_bvhs = ev.value ? 1 : 0;
+      update();
+    });
+
     let stats = this.pane.addFolder({
       title: 'Statistics',
       expanded: true,
@@ -421,6 +430,7 @@ export default class Renderer {
         samples_per_pixel: currSamplesPerPixel,
         rand_seed: vec4.fromValues(Math.random(), Math.random(), Math.random(), Math.random()),
         weight: weight,
+        use_bvhs: 0,
       };
 
       this.updatePipeline(this.scene, true);
