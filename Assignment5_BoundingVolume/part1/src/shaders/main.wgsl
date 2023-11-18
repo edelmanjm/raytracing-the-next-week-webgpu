@@ -223,8 +223,9 @@ fn scatter(mat_i: material_index, r_in: ray, rec: hit_record, attenuation: ptr<f
 // ----------------------------------------------------------------------------
 // Begin statistics
 struct statistics {
-    ray_intersection_count: u32,
-    ray_cast_count: u32
+    ray_cast_count: u32,
+    ray_bv_intersection_count: u32,
+    ray_object_intersection_count: u32
 }
 
 @group(0) @binding(5)
@@ -425,7 +426,7 @@ fn hit_hittables(sphere_index: i32, mesh_index: i32, r: ray, ray_tmin: f32, ray_
     if (sphere_index >= 0 && sphere_index < ${sphereCount}) {
         compute_stats.ray_cast_count++;
         if (hit_sphere(world.spheres[sphere_index], r, ray_tmin, closest_so_far, &temp_rec)) {
-            compute_stats.ray_intersection_count++;
+            compute_stats.ray_object_intersection_count++;
             hit_anything = true;
             closest_so_far = temp_rec.t;
             (*rec) = temp_rec;
@@ -440,7 +441,7 @@ fn hit_hittables(sphere_index: i32, mesh_index: i32, r: ray, ray_tmin: f32, ray_
             let i2 = current_mesh.indices[i][2];
             compute_stats.ray_cast_count++;
             if (hit_triangle(current_mesh.vertices[i0], current_mesh.vertices[i1], current_mesh.vertices[i2], current_mesh.mat, r, ray_tmin, closest_so_far, &temp_rec)) {
-                compute_stats.ray_intersection_count++;
+                compute_stats.ray_object_intersection_count++;
                 hit_anything = true;
                 closest_so_far = temp_rec.t;
                 (*rec) = temp_rec;
@@ -480,7 +481,7 @@ fn hit_hittable_list(r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hi
 //
 //    for (var i: u32 = 0; i < ${sphereCount}; i++) {
 //        if (hit_sphere(world.spheres[i], r, ray_tmin, closest_so_far, &temp_rec)) {
-//            compute_stats.ray_intersection_count += 1;
+//            compute_stats.ray_object_intersection_count += 1;
 //            hit_anything = true;
 //            closest_so_far = temp_rec.t;
 //            (*rec) = temp_rec;
@@ -494,7 +495,7 @@ fn hit_hittable_list(r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hi
 //            let i1 = current_mesh.indices[i][1];
 //            let i2 = current_mesh.indices[i][2];
 //            if (hit_triangle(current_mesh.vertices[i0], current_mesh.vertices[i1], current_mesh.vertices[i2], current_mesh.mat, r, ray_tmin, closest_so_far, &temp_rec)) {
-//                compute_stats.ray_intersection_count += 1;
+//                compute_stats.ray_object_intersection_count += 1;
 //                hit_anything = true;
 //                closest_so_far = temp_rec.t;
 //                (*rec) = temp_rec;
@@ -529,7 +530,7 @@ fn hit_bvh(bvh_index: u32, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<functi
 
             compute_stats.ray_cast_count++;
             if (hit_aabb(b.box, r, ray_tmin, ray_tmax)) {
-                compute_stats.ray_intersection_count++;
+                compute_stats.ray_bv_intersection_count++;
                 if (b.left_index < 0 && b.right_index < 0) {
                     // Leaf
                     if (hit_hittables(b.sphere_index, b.mesh_index, r, ray_tmin, closest_so_far, &temp_rec)) {

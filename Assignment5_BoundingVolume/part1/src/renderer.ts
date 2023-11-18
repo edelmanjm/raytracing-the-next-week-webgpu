@@ -76,8 +76,9 @@ export default class Renderer {
 
   // computeStats: Statistics;
   stats = {
-    rayIntersectionCount: 0,
     rayCastCount: 0,
+    rayBvIntersectionCount: 0,
+    rayObjectIntersectionCount: 0,
     frametime: 0,
   };
 
@@ -303,8 +304,14 @@ export default class Renderer {
       format: v => v.toFixed(0),
     });
 
-    stats.addBinding(this.stats, 'rayIntersectionCount', {
-      label: 'Nearest Ray Intersections',
+    stats.addBinding(this.stats, 'rayBvIntersectionCount', {
+      label: 'Nearest Ray Bounding Volume Intersections',
+      readonly: true,
+      format: v => v.toFixed(0),
+    });
+
+    stats.addBinding(this.stats, 'rayObjectIntersectionCount', {
+      label: 'Nearest Ray Object Intersections',
       readonly: true,
       format: v => v.toFixed(0),
     });
@@ -500,8 +507,9 @@ export default class Renderer {
       // Stats read
       await this.statsReadBuffer.mapAsync(GPUMapMode.READ);
       const statsArray = new Uint32Array(this.statsReadBuffer.getMappedRange());
-      this.stats.rayIntersectionCount = statsArray[0];
-      this.stats.rayCastCount = statsArray[1];
+      this.stats.rayCastCount = statsArray[0];
+      this.stats.rayBvIntersectionCount = statsArray[1];
+      this.stats.rayObjectIntersectionCount = statsArray[2];
       this.statsReadBuffer.unmap();
 
       this.stats['frametime'] = performance.now() - startTime;
