@@ -457,7 +457,7 @@ fn hit_hittable_list(r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hi
     var hit_anything: bool = false;
     var closest_so_far: f32 = ray_tmax;
 
-    for (var sphere_index: u32 = 0; sphere_index < ${sphereCount}; sphere_index++) {
+    for (var sphere_index: u32 = 0u; sphere_index < ${sphereCount}u; sphere_index++) {
         if (hit_hittables(i32(sphere_index), -1, r, ray_tmin, closest_so_far, &temp_rec)) {
             hit_anything = true;
             closest_so_far = temp_rec.t;
@@ -465,7 +465,7 @@ fn hit_hittable_list(r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hi
         }
     }
 
-    for (var mesh_index: u32 = 0; mesh_index < ${meshCount}; mesh_index++) {
+    for (var mesh_index: u32 = 0u; mesh_index < ${meshCount}u; mesh_index++) {
         if (hit_hittables(-1, i32(mesh_index), r, ray_tmin, closest_so_far, &temp_rec)) {
             hit_anything = true;
             closest_so_far = temp_rec.t;
@@ -479,8 +479,8 @@ fn hit_hittable_list(r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hi
 //    var hit_anything: bool = false;
 //    var closest_so_far: f32 = ray_tmax;
 //
-//    for (var i: u32 = 0; i < ${sphereCount}; i++) {
-//        if (hit_sphere(world.spheres[i], r, ray_tmin, closest_so_far, &temp_rec)) {
+//    for (var sphere_index: u32 = 0u; i < ${sphereCount}u; sphere_index++) {
+//        if (hit_sphere(world.spheres[sphere_index], r, ray_tmin, closest_so_far, &temp_rec)) {
 //            compute_stats.ray_object_intersection_count += 1;
 //            hit_anything = true;
 //            closest_so_far = temp_rec.t;
@@ -488,7 +488,7 @@ fn hit_hittable_list(r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hi
 //        }
 //    }
 //
-//    for (var mesh_index: u32 = 0; mesh_index < ${meshCount}; mesh_index++) {
+//    for (var mesh_index: u32 = 0u; mesh_index < ${meshCount}u; mesh_index++) {
 //        var current_mesh: mesh = world.meshes[mesh_index];
 //        for (var i: u32 = 0; i < current_mesh.indices_length; i++) {
 //            let i0 = current_mesh.indices[i][0];
@@ -711,7 +711,7 @@ fn ray_color(r: ray) -> color {
     for (var depth: u32 = 0u; depth < config.max_depth; depth++) {
         // I don't trust short circuiting for WGSL yet lol
         var hit: bool;
-        if (config.use_bvhs > 0) {
+        if (config.use_bvhs > 0u) {
             hit = hit_bvh(0u, current_ray, 0.001, infinity, &rec);
         } else {
             hit = hit_hittable_list(current_ray, 0.001, infinity, &rec);
