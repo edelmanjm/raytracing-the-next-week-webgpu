@@ -50,6 +50,8 @@ export class Aabb {
     this.max = max;
   }
 
+  // Bounding Volume requirement
+
   static fromSphere(s: Sphere): Aabb {
     let rvec: vec3 = [s.radius, s.radius, s.radius];
     let min: vec3 = [0, 0, 0];
