@@ -330,6 +330,9 @@ export default class Renderer {
 
     this.adapter = maybeAdapter;
     this.device = await this.adapter.requestDevice();
+    this.device.lost.then(info => {
+      console.error(`WebGPU device was lost: ${info.message}`);
+    });
     this.queue = this.device.queue;
 
     // Output and read buffers
