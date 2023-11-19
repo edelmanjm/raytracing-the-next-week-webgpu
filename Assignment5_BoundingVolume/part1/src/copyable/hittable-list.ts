@@ -29,7 +29,7 @@ export class Mesh {
   mat: number;
 
   padVec3ToVec4(input: vec3[], paddingValue: number = 0): vec4[] {
-    return input.map(v3 => vec4.fromValues(v3[0], v3[1], v3[2], 0));
+    return input.map(v3 => vec4.fromValues(v3[0], v3[1], v3[2], paddingValue));
   }
 
   constructor(vertices: Vertex[], indices: vec3[], mat: number) {
@@ -169,8 +169,7 @@ export class HittableList {
 
   /**
    * Return a list of BVHs, with the BVH for the provided geometry at the 0th index.
-   * @param spheres
-   * @param meshes
+   * @param bbs A series of tuples with bounding boxes and the corresponding indices of said bounding boxes in the sphere/mesh lists.
    * @param startIndex The starting index for the left_index/right_index properties of the BVHs to be returned. Used for the recursive calls.
    */
   static buildBvh(bbs: [number, AabbEncapsulation][], startIndex: number = 0): Bvh[] {
@@ -186,7 +185,7 @@ export class HittableList {
           break;
       }
     } else {
-      const sorted: [number, AabbEncapsulation][] = Array.from(bbs).sort(([i0, s0], [i1, s1]) => {
+      const sorted: [number, AabbEncapsulation][] = Array.from(bbs).sort(([_, s0], [__, s1]) => {
         const axis: number = Math.floor(Math.random() * 3);
 
         const center0: vec3 = vec3.create();
