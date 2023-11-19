@@ -440,7 +440,7 @@ export default class Renderer {
         samples_per_pixel: currSamplesPerPixel,
         rand_seed: vec4.fromValues(Math.random(), Math.random(), Math.random(), Math.random()),
         weight: weight,
-        use_bvhs: 0,
+        use_bvhs: this.raytracingConfig.use_bvhs,
       };
 
       this.updatePipeline(this.scene, true);
