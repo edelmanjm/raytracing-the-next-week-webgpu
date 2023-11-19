@@ -224,6 +224,7 @@ export class BvhTest implements Scene {
   static description: string = 'BVH test';
   materials = [
     Material.createLambertian({ albedo: [0.0, 1.0, 0.0] }, 0.5), // Lambertian green
+    Material.createLambertian({ albedo: [1.0, 0.0, 0.0] }, 0.5), // Lambertian green
   ];
 
   world: HittableList;
@@ -238,10 +239,14 @@ export class BvhTest implements Scene {
   );
 
   constructor() {
-    this.world = new HittableList(
+    this.world = HittableList.fromGeometry(
       [],
-      [new Mesh(...readObj(plane), 0)],
-      [new Bvh({ min: [-2, -2, -2], max: [2, 2, 2] }, -1, -1, -1, 0)],
+      [new Mesh(...readObj(monkey), 0), new Mesh(...readObj(torus), 1)],
+      // [
+      //   new Bvh({ min: [-3, -3, -3], max: [3, 3, 3] }, 1, 2, -1, -1),
+      //   new Bvh({ min: [-3, -3, -3], max: [3, 3, 3] }, -1, -1, -1, 0),
+      //   new Bvh({ min: [-3, -3, -3], max: [3, 3, 3] }, -1, -1, -1, 1),
+      // ],
     );
   }
 }
