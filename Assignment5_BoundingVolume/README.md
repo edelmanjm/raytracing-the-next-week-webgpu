@@ -2,14 +2,18 @@
 
 *TODO*: Please edit the following information in your assignment
 
-* Name: 
-* How many hours did it take you to complete this assignment? 
-* Did you collaborate or share ideas with any other students/TAs/Professors? 
-* Did you use any external resources? 
-  * (tbd if any)
-  * (tbd if any)
-  * (tbd if any)
+* Name: Jonathan Edelman
+* How many hours did it take you to complete this assignment? At least 35, and I wouldn't be surprised if way more.
+* Did you collaborate or share ideas with any other students/TAs/Professors?  No
+* Did you use any external resources?
+  * Shirley's _Ray Tracing: The Next Week_ was referenced for the basic BVH algorithms, with significant modifications to remove recursion.
+  * [This Nvidia paper](https://dl.acm.org/doi/10.5555/2977336.2977343), as well as several of the papers it references or compares itself to, were referenced in researching a stackless BVH traversal algorithm. Ultimately I did not have time to implement one, but I hope to in the future.
+  * I opened an issue with webgpu-utils, though it ultimately proved to be a restriction of WebGPU.
+  * [This guide to using compute shaders with vertex data](https://toji.dev/webgpu-best-practices/compute-vertex-data.html) was referenced during debugging, though it didn't prove useful.
+  * Chrome's and Mozilla's WebGPU developer documentation was regularly referenced.
+  * The [WGSL specification](https://www.w3.org/TR/WGSL/) was regularly referenced, as was [the explainer](https://gpuweb.github.io/gpuweb/explainer/).
 * (Optional) What was the most interesting part of the assignment? How would you improve this assignment?
+  * The different BVH traversal algorithms are super interesting. I'd like to know if there are other good, easy options for constructing the BVH besides the one shown in Shirley; I think including those as resources in the assignment document might be nice.
 
 # Assignment
 
