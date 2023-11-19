@@ -61,30 +61,26 @@ export class Aabb {
     let xs: number[] = m.vertices.map(v => v.px);
     let ys: number[] = m.vertices.map(v => v.py);
     let zs: number[] = m.vertices.map(v => v.pz);
-    return new Aabb(
-      [Math.min(...xs), Math.min(...ys), Math.min(...zs)],
-      [Math.max(...xs), Math.max(...ys), Math.max(...zs)],
-    );
 
-    // let minimums: number[] = [];
-    // let maximums: number[] = [];
-    //
-    // [xs, ys, zs].forEach(values => {
-    //   let min = Math.min(...values);
-    //   let max = Math.max(...values);
-    //   if (min == max) {
-    //     // Add a fudge factor
-    //     min -= 0.0001;
-    //     max += 0.0001;
-    //   }
-    //   minimums.push(min);
-    //   maximums.push(max);
-    // });
-    //
-    // return new Aabb(
-    //   [minimums[0], minimums[1], minimums[2]],
-    //   [maximums[0], maximums[1], maximums[2]],
-    // );
+    let minimums: number[] = [];
+    let maximums: number[] = [];
+
+    [xs, ys, zs].forEach(values => {
+      let min = Math.min(...values);
+      let max = Math.max(...values);
+      if (min == max) {
+        // Add a fudge factor
+        min -= 0.0001;
+        max += 0.0001;
+      }
+      minimums.push(min);
+      maximums.push(max);
+    });
+
+    return new Aabb(
+      [minimums[0], minimums[1], minimums[2]],
+      [maximums[0], maximums[1], maximums[2]],
+    );
   }
 
   static fromAabbs(box0: Aabb, box1: Aabb): Aabb {
