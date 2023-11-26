@@ -28,12 +28,11 @@ fn length_squared(v: vec3f) -> f32 {
 
 fn near_zero(v: vec3f) -> bool {
     // Return true if the vector is close to zero in all dimensions.
-    const s = 1e-8;
-    return length(v) < s;
+    return length(v) < 1e-8;
 }
 
 fn reflect(v: vec3f, n: vec3f) -> vec3f {
-    return v - 2 * dot(v, n) * n;
+    return v - 2.0 * dot(v, n) * n;
 }
 
 fn refract(uv: vec3f, n: vec3f, etai_over_etat: f32) -> vec3f {
@@ -77,21 +76,25 @@ fn random_range_vec3f(min: f32, max: f32) -> vec3f {
 }
 
 fn random_in_unit_sphere() -> vec3f {
-    loop {
-        let p = random_range_vec3f(-1, 1);
-        if (length_squared(p) < 1) {
+    // This enforces termination, which is required in WGSL
+    for (var i = 0; i < 4; i++) {
+        let p: vec3f = random_range_vec3f(-1.0, 1.0);
+        if (length_squared(p) < 1.0) {
             return p;
         }
     }
+    return vec3f(0.1, 0.1, 0.1);
 }
 
 fn random_in_unit_disk() -> vec3f {
-    loop {
-        let p = vec3f(random_range_f32(-1, 1), random_range_f32(-1, 1), 0);
-        if (length_squared(p) < 1) {
+    // This enforces termination, which is required in WGSL
+    for (var i = 0; i < 4; i++) {
+        let p: vec3f = vec3f(random_range_f32(-1.0, 1.0), random_range_f32(-1.0, 1.0), 0.0);
+        if (length_squared(p) < 1.0) {
             return p;
         }
     }
+    return vec3f(0.1, 0.1, 0.0);
 }
 
 fn random_unit_vector() -> vec3f {
@@ -112,9 +115,9 @@ fn random_on_hemisphere(normal: vec3f) -> vec3f {
 // Begin materials
 
 alias material_type = u32;
-const MATERIAL_TYPE_LAMBERTIAN : material_type = 0;
-const MATERIAL_TYPE_METAL : material_type = 1;
-const MATERIAL_TYPE_DIELECTRIC : material_type = 2;
+const MATERIAL_TYPE_LAMBERTIAN: material_type = 0u;
+const MATERIAL_TYPE_METAL: material_type = 1u;
+const MATERIAL_TYPE_DIELECTRIC: material_type = 2u;
 
 struct material_lambertian {
     albedo: color,
@@ -139,9 +142,9 @@ struct material {
 
 fn reflectance(cosine: f32, ref_idx: f32) -> f32 {
     // Use Schlick's approximation for reflectance.
-    var r0 = (1 - ref_idx) / (1 + ref_idx);
+    var r0 = (1.0 - ref_idx) / (1.0 + ref_idx);
     r0 = r0 * r0;
-    return r0 + (1 - r0) * pow((1 - cosine), 5);
+    return r0 + (1.0 - r0) * pow((1.0 - cosine), 5.0);
 }
 
 // Returns the percentage of light that was scattered
@@ -164,7 +167,7 @@ fn scatter(mat: material, r_in: ray, rec: hit_record, attenuation: ptr<function,
                                reflected + mat.metal.fuzz * random_unit_vector(),
                                r_in.strength * (1.0 - mat.absorption));
             (*attenuation) = mat.metal.albedo * r_in.strength;
-            return dot((*scattered).direction, rec.normal) > 0;
+            return dot((*scattered).direction, rec.normal) > 0.0;
         }
         case MATERIAL_TYPE_DIELECTRIC {
             (*attenuation) = color(1.0, 1.0, 1.0) * r_in.strength;
@@ -212,7 +215,7 @@ fn set_face_normal(record: ptr<function, hit_record>, r: ray, outward_normal: ve
     // Sets the hit record normal vector.
     // NOTE: the parameter outward_normal is assumed to have unit length.
 
-    (*record).front_face = dot(r.direction, outward_normal) < 0;
+    (*record).front_face = dot(r.direction, outward_normal) < 0.0;
     if ((*record).front_face) {
         (*record).normal = outward_normal;
     } else {
@@ -235,7 +238,7 @@ fn hit_sphere(s: sphere, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function
     let c = length_squared(oc) - s.radius * s.radius;
 
     let discriminant = half_b * half_b - a * c;
-    if (discriminant < 0) {
+    if (discriminant < 0.0) {
         return false;
     }
     let sqrtd = sqrt(discriminant);
@@ -266,7 +269,7 @@ struct hittable_list {
 
 fn hittable_list_add_sphere(list: ptr<function, hittable_list>, s: sphere) {
     (*list).spheres[(*list).spheres_size] = s;
-    (*list).spheres_size += 1;
+    (*list).spheres_size++;
 }
 
 fn hit_hittable_list(list: ptr<function, hittable_list>, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hit_record>) -> bool {
@@ -274,7 +277,7 @@ fn hit_hittable_list(list: ptr<function, hittable_list>, r: ray, ray_tmin: f32, 
     var hit_anything: bool = false;
     var closest_so_far: f32 = ray_tmax;
 
-    for (var i: u32 = 0; i < (*list).spheres_size; i++) {
+    for (var i: u32 = 0u; i < (*list).spheres_size; i++) {
         if (hit_sphere((*list).spheres[i], r, ray_tmin, closest_so_far, &temp_rec)) {
             hit_anything = true;
             closest_so_far = temp_rec.t;
@@ -314,17 +317,17 @@ struct camera {
 }
 
 fn camera_initialize(cam: ptr<function, camera>, vfov: f32, lookfrom: vec3f, lookat: vec3f, vup: vec3f, defocus_angle: f32, focus_dist: f32) {
-    (*cam).width = ${width};
-    (*cam).height = ${height};
+    (*cam).width = ${width}u;
+    (*cam).height = ${height}u;
     (*cam).origin = lookfrom;
     (*cam).defocus_angle = defocus_angle;
     (*cam).focus_dist = focus_dist;
 
-    const aspect_ratio: f32 = ${width} / ${height};
+    let aspect_ratio: f32 = ${width}f / ${height}f;
 
     let focal_length = length(lookfrom - lookat);
-    let h = tan(vfov / 2);
-    let viewport_height = 2 * h * focal_length;
+    let h = tan(vfov / 2.0);
+    let viewport_height = 2.0 * h * focal_length;
     let viewport_width = aspect_ratio * viewport_height;
 
     // Calculate the u,v,w unit basis vectors for the camera coordinate frame.
@@ -337,19 +340,19 @@ fn camera_initialize(cam: ptr<function, camera>, vfov: f32, lookfrom: vec3f, loo
     (*cam).viewport_v = viewport_height * (*cam).v; // Vector down viewport vertical edge
 
     // Calculate the horizontal and vertical delta vectors to the next pixel.
-    (*cam).pixel_delta_u = (*cam).viewport_u / ${width};
-    (*cam).pixel_delta_v = (*cam).viewport_v / ${height};
+    (*cam).pixel_delta_u = (*cam).viewport_u / ${width}f;
+    (*cam).pixel_delta_v = (*cam).viewport_v / ${height}f;
 
     // Calculate the location of the upper left pixel.
-    let viewport_upper_left = (*cam).origin - (focal_length * (*cam).w) - (*cam).viewport_u / 2 - (*cam).viewport_v / 2;
+    let viewport_upper_left = (*cam).origin - (focal_length * (*cam).w) - (*cam).viewport_u / 2.0 - (*cam).viewport_v / 2.0;
     (*cam).pixel00_loc = viewport_upper_left + 0.5 * ((*cam).pixel_delta_u + (*cam).pixel_delta_v);
 
     // Calculate the camera defocus disk basis vectors.
-    let defocus_radius = focus_dist * tan(defocus_angle / 2);
+    let defocus_radius = focus_dist * tan(defocus_angle / 2.0);
     (*cam).defocus_disk_u = (*cam).u * defocus_radius;
     (*cam).defocus_disk_v = (*cam).v * defocus_radius;
 
-    (*cam).samples_per_pixel = 100;
+    (*cam).samples_per_pixel = 100u;
 }
 
 fn pixel_sample_square(cam: ptr<function, camera>) -> vec3f {
@@ -373,7 +376,7 @@ fn get_ray(cam: ptr<function, camera>, i: f32, j: f32) -> ray {
     let pixel_sample = pixel_center + pixel_sample_square(cam);
 
     var ray_origin: vec3f;
-    if ((*cam).defocus_angle <= 0) {
+    if ((*cam).defocus_angle <= 0.0) {
         ray_origin = (*cam).origin;
     } else {
         ray_origin = defocus_disk_sample(cam);
@@ -389,8 +392,8 @@ fn render(cam: ptr<function, camera>, world: ptr<function, hittable_list>, offse
     let y = f32((*cam).height) - f32(offset / (*cam).width); // Flip Y so Y+ is up
 
     // Render
-    var pixel_color = color(0,0,0);
-    for (var sample: u32 = 0; sample < (*cam).samples_per_pixel; sample += 1) {
+    var pixel_color = color(0.0, 0.0, 0.0);
+    for (var sample: u32 = 0u; sample < (*cam).samples_per_pixel; sample++) {
         let r: ray = get_ray(cam, x, y);
         pixel_color += ray_color(r, world);
     }
@@ -417,7 +420,7 @@ fn ray_color(r: ray, world: ptr<function, hittable_list>) -> color {
     var c: color = color(1.0, 1.0, 1.0);
 
     // No recusion available
-    for (var depth = 0; depth < max_depth; depth += 1) {
+    for (var depth = 0; depth < max_depth; depth++) {
         if (hit_hittable_list(world, current_ray, 0.001, infinity, &rec)) {
             var scattered: ray;
             var attenuation: color;
@@ -444,7 +447,7 @@ fn color_to_u32(c : color) -> u32 {
     let a = 255u;
 
     // bgra8unorm
-    return (a << 24) | (r << 16) | (g << 8) | b;
+    return (a << 24u) | (r << 16u) | (g << 8u) | b;
 
     // rgba8unorm
     // return (a << 24) | (b << 16) | (g << 8) | r;
@@ -503,13 +506,13 @@ fn main(
 
                 // Sphere Requirement
                 hittable_list_add_sphere(&world, sphere(vec3f(0.0, 0.0, -1.0), 0.5, material_lambertian_green));
-                hittable_list_add_sphere(&world, sphere(vec3f(0.0, -100.5, -1.0), 100, material_lambertian_red));
+                hittable_list_add_sphere(&world, sphere(vec3f(0.0, -100.5, -1.0), 100.0, material_lambertian_red));
                 hittable_list_add_sphere(&world, sphere(vec3f(-1.0, 0.0, -1.0), 0.5, material_dielectric));
                 hittable_list_add_sphere(&world, sphere(vec3f(1.0, 0.0, -1.0), 0.5, material_metal_bluegrey_rough));
                 hittable_list_add_sphere(&world, sphere(vec3f(0.0, 1.0, -2.0), 1.0, material_metal_bluegrey_glossy));
 
                 // Camera Requirement
-                camera_initialize(&cam, radians(45), vec3(-2, 2, 1), vec3(0, 0, -1), vec3(0, 1, 0), radians(10.0), 3.4);
+                camera_initialize(&cam, radians(45.0), vec3(-2.0, 2.0, 1.0), vec3(0.0, 0.0, -1.0), vec3(0.0, 1.0, 0.0), radians(10.0), 3.4);
             }
             case 1: {
                 // Materials Requirement
@@ -518,7 +521,7 @@ fn main(
                 ground_material.lambertian.albedo = color(0.5, 0.5, 0.5);
                 ground_material.absorption = 0.5;
 
-                hittable_list_add_sphere(&world, sphere(vec3f(0.0, -1000.0, 0.0), 1000, ground_material));
+                hittable_list_add_sphere(&world, sphere(vec3f(0.0, -1000.0, 0.0), 1000.0, ground_material));
 
                 // Sphere Requirement
                 for (var a: i32 = -5; a < 5; a++) {
@@ -528,13 +531,13 @@ fn main(
                         // Current random implementation doesn't work well for this, so we'll avoid it for now
                         let center = vec3f(f32(a), 0.2, f32(b));
 
-                        if (length(center - vec3f(4, 0.2, 0)) > 0.9) {
+                        if (length(center - vec3f(4.0, 0.2, 0.0)) > 0.9) {
                             var sphere_material: material;
 
                             if (choose_mat == 0) {
                                 // Diffused
                                 sphere_material.ty = MATERIAL_TYPE_LAMBERTIAN;
-                                sphere_material.lambertian.albedo = color(0.5, 0, 0);
+                                sphere_material.lambertian.albedo = color(0.5, 0.0, 0.0);
                             } else if (choose_mat == 1) {
                                 // Metal
                                 sphere_material.ty = MATERIAL_TYPE_METAL;
@@ -569,7 +572,7 @@ fn main(
                 hittable_list_add_sphere(&world, sphere(vec3f(4.0, 1.0, 0.0), 1.0, big_metal_material));
 
                 // Camera Requirement
-                camera_initialize(&cam, radians(20), vec3(13, 2, 3), vec3(0, 0, 0), vec3(0, 1, 0), radians(0.6), 10.0);
+                camera_initialize(&cam, radians(20.0), vec3(13.0, 2.0, 3.0), vec3(0.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0), radians(0.6), 10.0);
             }
         }
 
