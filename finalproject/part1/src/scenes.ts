@@ -28,7 +28,7 @@ export abstract class Scene {
     description: string,
     materials: Material[],
     cameraInitializationParameters: CameraInitializeParameters,
-    samplesPerFrame: number,
+    samplesPerFrame: number = 10,
   ) {
     this.shortName = shortName;
     this.description = description;
@@ -135,7 +135,6 @@ export class FourSphere extends Scene {
         Material.createDielectric({ ior: 1.5 }, 0.2), // Dielectric
       ],
       cameraInitializationParameters,
-      10,
     );
   }
 
@@ -218,7 +217,6 @@ export class FinalScene extends Scene {
         glMatrix.toRadian(0.6),
         10.0,
       ),
-      10,
     );
 
     this.spheres = spheres;
@@ -316,7 +314,6 @@ export class BvhTest extends Scene {
         glMatrix.toRadian(0.1),
         5,
       ),
-      10,
     );
   }
 
@@ -355,7 +352,6 @@ export class EmissionTest extends Scene {
         glMatrix.toRadian(0.1),
         5,
       ),
-      10,
     );
   }
 
