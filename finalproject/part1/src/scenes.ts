@@ -253,3 +253,39 @@ export class BvhTest implements Scene {
     );
   }
 }
+
+export class EmissionTest implements Scene {
+  shortName: string = 'emission-test';
+  static description: string = 'Emission test';
+  materials = [
+    Material.createEmissive({ emissivity: [10.0, 0.0, 0.0] }), // Emissive red
+    Material.createMetal({ albedo: [0.3, 0.3, 0.5], fuzz: 0.0 }, 0.0), // Metal blue-grey glossy
+    Material.createMetal({ albedo: [0.3, 0.3, 0.5], fuzz: 0.5 }, 0.0), // Metal blue-grey rough
+    Material.createDielectric({ ior: 1.5 }, 0.2), // Dielectric
+  ];
+
+  world: HittableList;
+
+  cameraInitializationParameters: CameraInitializeParameters = new CameraInitializeParameters(
+    glMatrix.toRadian(50),
+    [0, 2, 3],
+    [0, 1, 0],
+    [0, 1, 0],
+    glMatrix.toRadian(0.1),
+    5,
+  );
+
+  constructor() {
+    this.world = HittableList.fromGeometry(
+      [
+        { center: [0.0, 0.0, -1.0], radius: 0.5, mat: 0 },
+        { center: [0.0, -100.5, -1.0], radius: 100, mat: 2 },
+        { center: [-1.0, 0.0, -1.0], radius: 0.5, mat: 1 },
+        { center: [1.0, 0.0, -1.0], radius: 0.5, mat: 1 },
+        { center: [0.0, 1.0, -2.0], radius: 1.0, mat: 1 },
+      ],
+      [],
+      new Background(false, [0, 0, 0]),
+    );
+  }
+}

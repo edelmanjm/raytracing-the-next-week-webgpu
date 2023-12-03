@@ -22,7 +22,7 @@ export class Material {
   lambertian: MaterialLambertian | {};
   metal: MaterialMetal | {};
   dielectric: MaterialDielectric | {};
-  emissivity: MaterialDielectric | {};
+  emissive: MaterialEmissive | {};
   absorption: number;
 
   constructor(
@@ -30,14 +30,14 @@ export class Material {
     lambertian: MaterialLambertian | {},
     metal: MaterialMetal | {},
     dielectric: MaterialDielectric | {},
-    emissivity: MaterialDielectric | {},
+    emissive: MaterialEmissive | {},
     absorption: number,
   ) {
     this.ty = ty;
     this.lambertian = lambertian;
     this.metal = metal;
     this.dielectric = dielectric;
-    this.emissivity = emissivity;
+    this.emissive = emissive;
     this.absorption = absorption;
   }
 
@@ -53,7 +53,7 @@ export class Material {
     return new Material(2, {}, {}, mat, {}, absoption);
   }
 
-  static createEmissive(mat: MaterialEmissive, absoption: number): Material {
-    return new Material(3, {}, {}, {}, mat, absoption);
+  static createEmissive(mat: MaterialEmissive): Material {
+    return new Material(3, {}, {}, {}, mat, 0.0);
   }
 }

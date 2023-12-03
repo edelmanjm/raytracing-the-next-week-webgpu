@@ -7,6 +7,7 @@ import {
   FourSphereCameraPosition,
   MeshShowcase,
   BvhTest,
+  EmissionTest,
 } from './scenes.js';
 import { RaytracingConfig } from './copyable/raytracing-config.js';
 import { ListBladeApi, Pane } from 'tweakpane';
@@ -227,7 +228,7 @@ export default class Renderer {
 
     const finalScene = new FinalScene();
     const meshShowcase = new MeshShowcase();
-    this.scene = fourSphereOptions[0].value;
+    this.scene = new EmissionTest();
 
     // View Requirement
     let sceneBlade = this.pane.addBlade({

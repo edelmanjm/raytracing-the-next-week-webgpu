@@ -153,7 +153,7 @@ struct material {
     lambertian: material_lambertian,
     metal: material_metal,
     dielectric: material_dielectric,
-    emissivity: material_emissive,
+    emissive: material_emissive,
     // Alignment is required to use as a uniform
     @align(16) absorption: f32,
 }
@@ -732,7 +732,10 @@ fn ray_color(r: ray) -> color {
         if (hit) {
             var scattered: ray;
             var attenuation: color;
-            if (scatter(rec.mat, current_ray, rec, &attenuation, &scattered)) {
+            var mat: material = materials[rec.mat];
+            if (mat.ty == MATERIAL_TYPE_EMISSIVE) {
+                c *= mat.emissive.emissivity;
+            } else if (scatter(rec.mat, current_ray, rec, &attenuation, &scattered)) {
                 c *= attenuation;
                 current_ray = scattered;
             }
@@ -774,8 +777,9 @@ fn u32_to_color(c: u32) -> color {
 }
 
 fn write_color(offset: u32, pixel_color: color) {
+    var clamped = vec3f(clamp(pixel_color[0], 0.0, 1.0), clamp(pixel_color[1], 0.0, 1.0), clamp(pixel_color[2], 0.0, 1.0));
     // Gamma correction
-    var c = sqrt(pixel_color);
+    var c = sqrt(clamped);
 
     var last = u32_to_color(output[offset]);
     var w = config.weight;
