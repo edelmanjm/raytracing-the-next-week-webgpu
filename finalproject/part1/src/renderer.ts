@@ -95,23 +95,20 @@ export default class Renderer {
     await this.onResize();
   }
 
-  updatePipeline(scene: Scene, configOnly: boolean) {
+  async updatePipeline(scene: Scene, configOnly: boolean) {
     const materials = scene.materials;
-
-    if (scene.world == null) {
-      return;
-    }
+    const world = await scene.getWorld();
 
     const code: string = getShader(
       this.wgSize,
       this.width,
       this.height,
       materials.length,
-      scene.world.spheres.length,
-      scene.world.meshes.length,
-      scene.world.meshes.map(m => m.vertices.length).reduce((sum, current) => sum + current, 0),
-      scene.world.meshes.map(m => m.indices.length).reduce((sum, current) => sum + current, 0),
-      scene.world.bvhs.length,
+      world.spheres.length,
+      world.meshes.length,
+      world.meshes.map(m => m.vertices.length).reduce((sum, current) => sum + current, 0),
+      world.meshes.map(m => m.indices.length).reduce((sum, current) => sum + current, 0),
+      world.bvhs.length,
     );
     const defs = makeShaderDataDefinitions(code);
 
@@ -134,7 +131,7 @@ export default class Renderer {
       {
         const worldView = makeStructuredView(defs.storages.world);
 
-        worldView.set(scene.world);
+        worldView.set(await scene.getWorld());
 
         this.worldBuffer = this.device.createBuffer({
           size: worldView.arrayBuffer.byteLength,
@@ -218,8 +215,8 @@ export default class Renderer {
   }
 
   async initializeTweakPane() {
-    let update = () => {
-      this.updatePipeline(this.scene, false);
+    let update = async () => {
+      await this.updatePipeline(this.scene, false);
       this.dirty = true;
     };
 
@@ -239,14 +236,15 @@ export default class Renderer {
     const meshShowcase = new MeshShowcase();
     const cornellBox = new CornellBox();
 
+    // Cache the hittable lists ahead of time
     await Promise.all([
       fourSphereOptions.map(v => {
-        return v.value.init();
+        return v.value.getWorld();
       }),
-      finalScene.init(),
-      simpleMesh.init(),
-      meshShowcase.init(),
-      cornellBox.init(),
+      finalScene.getWorld(),
+      simpleMesh.getWorld(),
+      meshShowcase.getWorld(),
+      cornellBox.getWorld(),
     ]);
 
     this.scene = fourSphereOptions[0].value;
@@ -257,10 +255,10 @@ export default class Renderer {
       label: 'Scene',
       options: [
         ...fourSphereOptions,
-        { text: FinalScene.description, value: finalScene },
-        { text: SimpleMesh.description, value: simpleMesh },
-        { text: MeshShowcase.description, value: meshShowcase },
-        { text: CornellBox.description, value: cornellBox },
+        { text: finalScene.description, value: finalScene },
+        { text: simpleMesh.description, value: simpleMesh },
+        { text: meshShowcase.description, value: meshShowcase },
+        { text: cornellBox.description, value: cornellBox },
       ],
       value: this.scene,
     }) as ListBladeApi<Scene>;
@@ -393,7 +391,7 @@ export default class Renderer {
     }
 
     await this.initializeTweakPane();
-    this.updatePipeline(this.scene, false);
+    await this.updatePipeline(this.scene, false);
   }
 
   async onResize(): Promise<void> {
@@ -476,7 +474,7 @@ export default class Renderer {
         use_bvhs: this.raytracingConfig.use_bvhs,
       };
 
-      this.updatePipeline(this.scene, true);
+      await this.updatePipeline(this.scene, true);
 
       const pass = encoder.beginComputePass();
       pass.setPipeline(this.pipeline);
