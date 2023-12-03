@@ -156,7 +156,11 @@ export class HittableList {
     this.bg = bg;
   }
 
-  static fromGeometry(spheres: Sphere[], meshes: Mesh[], bg: Background) {
+  static fromSpheres(spheres: Sphere[], bg: Background) {
+    return new HittableList(spheres, [], [], bg);
+  }
+
+  static async fromGeometry(spheres: Sphere[], meshes: Mesh[], bg: Background) {
     const addIndex = <T>(values: T[]): [number, T][] => values.map((v, i) => [i, v]);
     const mappedSpheres = spheres.map(s => {
       let potato: AabbEncapsulation = {
@@ -175,7 +179,7 @@ export class HittableList {
     return new HittableList(
       spheres,
       meshes,
-      HittableList.buildBvh([...addIndex(mappedSpheres), ...addIndex(mappedMeshes)]),
+      await HittableList.buildBvh([...addIndex(mappedSpheres), ...addIndex(mappedMeshes)]),
       bg,
     );
   }
@@ -185,7 +189,7 @@ export class HittableList {
    * @param bbs A series of tuples with bounding boxes and the corresponding indices of said bounding boxes in the sphere/mesh lists.
    * @param startIndex The starting index for the left_index/right_index properties of the BVHs to be returned. Used for the recursive calls.
    */
-  static buildBvh(bbs: [number, AabbEncapsulation][], startIndex: number = 0): Bvh[] {
+  static async buildBvh(bbs: [number, AabbEncapsulation][]): Promise<Bvh[]> {
     if (bbs.length == 1) {
       let [i, bb] = bbs[0];
       switch (bb.type) {
@@ -211,18 +215,44 @@ export class HittableList {
         return center0[axis] - center1[axis];
       });
 
-      const leftStartIndex = startIndex + 1;
-      const left: Bvh[] = this.buildBvh(sorted.slice(0, sorted.length / 2), leftStartIndex);
-      const rightStartIndex = startIndex + left.length + 1;
-      const right: Bvh[] = this.buildBvh(sorted.slice(sorted.length / 2), rightStartIndex);
+      const midpoint = sorted.length / 2;
+      return Promise.all([
+        this.buildBvh(sorted.slice(0, midpoint)),
+        this.buildBvh(sorted.slice(midpoint)),
+      ]).then(promises => {
+        let [leftUnfixed, rightUnfixed] = promises;
 
-      return [
-        new Bvh(Aabb.fromAabbs(left[0].box, right[0].box), leftStartIndex, rightStartIndex, -1, -1),
-        ...left,
-        ...right,
-      ];
+        // I tried switching the BVH traversal algorithm to use offsets on the WGSL side, but for whatever reason changing even
+        // stack[size] = b.left_index; to stack[size] = b.left_index + 0; causes the program to hang, even if BVHs are disabled.
+        // So we're going to recalculate the offsets here.
+        let left = leftUnfixed.map(
+          b =>
+            new Bvh(
+              b.box,
+              b.left_index > 0 ? b.left_index + 1 : -1,
+              b.right_index > 0 ? b.right_index + 1 : -1,
+              b.sphere_index,
+              b.mesh_index,
+            ),
+        );
+        let right = rightUnfixed.map(
+          b =>
+            new Bvh(
+              b.box,
+              b.left_index > 0 ? b.left_index + left.length + 1 : -1,
+              b.right_index > 0 ? b.right_index + left.length + 1 : -1,
+              b.sphere_index,
+              b.mesh_index,
+            ),
+        );
+        return [
+          new Bvh(Aabb.fromAabbs(left[0].box, right[0].box), 1, left.length + 1, -1, -1),
+          ...left,
+          ...right,
+        ];
+      });
     }
     // Unreachable
-    return [];
+    return Promise.resolve([]);
   }
 }

@@ -15,7 +15,7 @@ import boxLight from './objs/cornell-box/box-light.obj';
 export interface Scene {
   shortName: string;
   materials: Material[];
-  world: HittableList;
+  world: HittableList | null;
   cameraInitializationParameters: CameraInitializeParameters;
   // Certain scenes don't perform well with certain numbers of samples (either
   // because they time out or because they don't accumulate enough light). This
@@ -115,7 +115,7 @@ export class FourSphere implements Scene {
         break;
     }
 
-    this.world = HittableList.fromGeometry(
+    this.world = HittableList.fromSpheres(
       [
         { center: [0.0, 0.0, -1.0], radius: 0.5, mat: 0 },
         { center: [0.0, -100.5, -1.0], radius: 100, mat: 1 },
@@ -123,9 +123,12 @@ export class FourSphere implements Scene {
         { center: [1.0, 0.0, -1.0], radius: 0.5, mat: 3 },
         { center: [0.0, 1.0, -2.0], radius: 1.0, mat: 2 },
       ],
-      [],
       new Background(true, [0, 0, 0]),
     );
+  }
+
+  init(): Promise<void> {
+    return Promise.resolve(undefined);
   }
 }
 
@@ -191,7 +194,11 @@ export class FinalScene implements Scene {
     this.materials.push(Material.createMetal({ albedo: [0.7, 0.6, 0.5], fuzz: 0.0 }, 0.0));
     spheres.push({ center: [4, 1, 0], radius: 1.0, mat: this.materials.length - 1 });
 
-    this.world = HittableList.fromGeometry(spheres, [], new Background(true, [0, 0, 0]));
+    this.world = HittableList.fromSpheres(spheres, new Background(true, [0, 0, 0]));
+  }
+
+  init(): Promise<void> {
+    return Promise.resolve(undefined);
   }
 }
 
@@ -203,7 +210,7 @@ export class SimpleMesh implements Scene {
     Material.createMetal({ albedo: [0.3, 0.3, 0.5], fuzz: 0.5 }, 0.0), // Metal blue-grey rough
   ];
 
-  world: HittableList;
+  world: HittableList | null = null;
 
   cameraInitializationParameters: CameraInitializeParameters = new CameraInitializeParameters(
     glMatrix.toRadian(50),
@@ -216,8 +223,10 @@ export class SimpleMesh implements Scene {
 
   samplesPerFrame = 5;
 
-  constructor() {
-    this.world = HittableList.fromGeometry(
+  constructor() {}
+
+  async init(): Promise<void> {
+    this.world = await HittableList.fromGeometry(
       [],
       [new Mesh(...readObj(torus), 0)],
       new Background(true, [0, 0, 0]),
@@ -236,7 +245,7 @@ export class MeshShowcase implements Scene {
     Material.createDielectric({ ior: 1.5 }, 0.2), // Dielectric
   ];
 
-  world: HittableList;
+  world: HittableList | null = null;
 
   cameraInitializationParameters: CameraInitializeParameters = new CameraInitializeParameters(
     glMatrix.toRadian(50),
@@ -249,8 +258,10 @@ export class MeshShowcase implements Scene {
 
   samplesPerFrame = 2;
 
-  constructor() {
-    this.world = HittableList.fromGeometry(
+  constructor() {}
+
+  async init(): Promise<void> {
+    this.world = await HittableList.fromGeometry(
       [
         { center: [-1.7, 1.0, -2.0], radius: 0.5, mat: 2 },
         { center: [1.7, 1.0, -2.0], radius: 0.5, mat: 4 },
@@ -273,7 +284,7 @@ export class BvhTest implements Scene {
     Material.createLambertian({ albedo: [1.0, 0.0, 0.0] }, 0.5), // Lambertian green
   ];
 
-  world: HittableList;
+  world: HittableList | null = null;
 
   cameraInitializationParameters: CameraInitializeParameters = new CameraInitializeParameters(
     glMatrix.toRadian(50),
@@ -286,8 +297,10 @@ export class BvhTest implements Scene {
 
   samplesPerFrame = 10;
 
-  constructor() {
-    this.world = HittableList.fromGeometry(
+  constructor() {}
+
+  async init() {
+    this.world = await HittableList.fromGeometry(
       [],
       [new Mesh(...readObj(monkey), 0), new Mesh(...readObj(torus), 1)],
       // [
@@ -312,7 +325,7 @@ export class EmissionTest implements Scene {
     Material.createEmissive({ emissivity: [100.0, 1.0, 1.0] }),
   ];
 
-  world: HittableList;
+  world: HittableList | null = null;
 
   cameraInitializationParameters: CameraInitializeParameters = new CameraInitializeParameters(
     glMatrix.toRadian(50),
@@ -325,8 +338,10 @@ export class EmissionTest implements Scene {
 
   samplesPerFrame = 10;
 
-  constructor() {
-    this.world = HittableList.fromGeometry(
+  constructor() {}
+
+  async init(): Promise<void> {
+    this.world = await HittableList.fromGeometry(
       [
         { center: [0.0, 0.0, -1.0], radius: 0.5, mat: 5 },
         { center: [-1.0, 0.0, -1.0], radius: 0.5, mat: 0 },
@@ -353,7 +368,7 @@ export class CornellBox implements Scene {
     Material.createDielectric({ ior: 1.5 }, 0.2), // Dielectric
   ];
 
-  world: HittableList;
+  world: HittableList | null = null;
 
   cameraInitializationParameters: CameraInitializeParameters = new CameraInitializeParameters(
     glMatrix.toRadian(75),
@@ -366,8 +381,10 @@ export class CornellBox implements Scene {
 
   samplesPerFrame = 20;
 
-  constructor() {
-    this.world = HittableList.fromGeometry(
+  constructor() {}
+
+  async init(): Promise<void> {
+    this.world = await HittableList.fromGeometry(
       [
         { center: [-3.0, -3.0, -3.0], radius: 1.25, mat: 3 },
         { center: [-3.0, -3.0, 0.0], radius: 1.25, mat: 5 },

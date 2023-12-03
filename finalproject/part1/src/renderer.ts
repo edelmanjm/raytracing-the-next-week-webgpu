@@ -98,6 +98,10 @@ export default class Renderer {
   updatePipeline(scene: Scene, configOnly: boolean) {
     const materials = scene.materials;
 
+    if (scene.world == null) {
+      return;
+    }
+
     const code: string = getShader(
       this.wgSize,
       this.width,
@@ -213,7 +217,7 @@ export default class Renderer {
     });
   }
 
-  initializeTweakPane() {
+  async initializeTweakPane() {
     let update = () => {
       this.updatePipeline(this.scene, false);
       this.dirty = true;
@@ -234,6 +238,16 @@ export default class Renderer {
     const simpleMesh = new SimpleMesh();
     const meshShowcase = new MeshShowcase();
     const cornellBox = new CornellBox();
+
+    await Promise.all([
+      fourSphereOptions.map(v => {
+        return v.value.init();
+      }),
+      finalScene.init(),
+      simpleMesh.init(),
+      meshShowcase.init(),
+      cornellBox.init(),
+    ]);
 
     this.scene = fourSphereOptions[0].value;
 
@@ -378,7 +392,7 @@ export default class Renderer {
       });
     }
 
-    this.initializeTweakPane();
+    await this.initializeTweakPane();
     this.updatePipeline(this.scene, false);
   }
 
