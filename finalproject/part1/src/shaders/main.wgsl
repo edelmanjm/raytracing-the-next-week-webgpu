@@ -129,6 +129,7 @@ alias material_type = u32;
 const MATERIAL_TYPE_LAMBERTIAN: material_type = 0u;
 const MATERIAL_TYPE_METAL: material_type = 1u;
 const MATERIAL_TYPE_DIELECTRIC: material_type = 2u;
+const MATERIAL_TYPE_EMISSIVE: material_type = 3u;
 
 struct material_lambertian {
     albedo: color,
@@ -143,11 +144,16 @@ struct material_dielectric {
     ior: f32,
 }
 
+struct material_emissive {
+    emissivity: color,
+}
+
 struct material {
     ty: material_type,
     lambertian: material_lambertian,
     metal: material_metal,
     dielectric: material_dielectric,
+    emissivity: material_emissive,
     // Alignment is required to use as a uniform
     @align(16) absorption: f32,
 }
@@ -409,10 +415,17 @@ struct bvh {
     mesh_index: i32,
 }
 
+struct background {
+    // Workaround for bool members not being copyable via a buffer
+    use_sky: u32,
+    albedo: color,
+}
+
 struct hittable_list {
     spheres: array<sphere, ${sphereCountOrOne}>,
     meshes: array<mesh, ${meshCountOrOne}>,
-    bvhs: array<bvh, ${bvhCount}>
+    bvhs: array<bvh, ${bvhCount}>,
+    bg: background,
 }
 
 @group(0) @binding(2)
@@ -724,11 +737,16 @@ fn ray_color(r: ray) -> color {
                 current_ray = scattered;
             }
         } else {
-            // Sky
-            let unit_direction = normalize(r.direction);
-            let t = 0.5 * (unit_direction.y + 1.0);
-            c *= (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
-            break;
+            if (world.bg.use_sky > 0) {
+                // Sky
+                let unit_direction = normalize(r.direction);
+                let t = 0.5 * (unit_direction.y + 1.0);
+                c *= (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
+                break;
+            } else {
+                c *= world.bg.albedo;
+                break;
+            }
         }
     }
 

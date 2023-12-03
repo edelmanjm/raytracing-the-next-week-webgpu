@@ -1,5 +1,5 @@
 import { Material } from './copyable/materials.js';
-import { Bvh, HittableList, Mesh, Sphere } from './copyable/hittable-list.js';
+import { Background, Bvh, HittableList, Mesh, Sphere } from './copyable/hittable-list.js';
 import { CameraInitializeParameters } from './copyable/camera-initialize-parameters.js';
 import { glMatrix, vec3 } from 'gl-matrix';
 import { readObj } from './obj-reader.js';
@@ -113,6 +113,7 @@ export class FourSphere implements Scene {
         { center: [0.0, 1.0, -2.0], radius: 1.0, mat: 2 },
       ],
       [],
+      new Background(true, [0, 0, 0]),
     );
   }
 }
@@ -178,7 +179,7 @@ export class FinalScene implements Scene {
     this.materials.push(Material.createMetal({ albedo: [0.7, 0.6, 0.5], fuzz: 0.0 }, 0.0));
     spheres.push({ center: [4, 1, 0], radius: 1.0, mat: this.materials.length - 1 });
 
-    this.world = HittableList.fromGeometry(spheres, []);
+    this.world = HittableList.fromGeometry(spheres, [], new Background(true, [0, 0, 0]));
   }
 }
 
@@ -215,6 +216,7 @@ export class MeshShowcase implements Scene {
         new Mesh(...readObj(torus), 3),
         new Mesh(...readObj(plane), 1),
       ],
+      new Background(true, [0, 0, 0]),
     );
   }
 }
@@ -247,6 +249,7 @@ export class BvhTest implements Scene {
       //   new Bvh({ min: [-3, -3, -3], max: [3, 3, 3] }, -1, -1, -1, 0),
       //   new Bvh({ min: [-3, -3, -3], max: [3, 3, 3] }, -1, -1, -1, 1),
       // ],
+      new Background(true, [0, 0, 0]),
     );
   }
 }

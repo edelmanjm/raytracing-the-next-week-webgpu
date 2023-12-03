@@ -133,18 +133,30 @@ export class Bvh {
   }
 }
 
+export class Background {
+  use_sky: number;
+  albedo: vec3;
+
+  constructor(useSky: boolean, albedo: vec3) {
+    this.use_sky = useSky ? 1 : 0;
+    this.albedo = albedo;
+  }
+}
+
 export class HittableList {
   spheres: Sphere[];
   meshes: Mesh[];
   bvhs: Bvh[];
+  bg: Background;
 
-  constructor(spheres: Sphere[], meshes: Mesh[], bvhs: Bvh[]) {
+  constructor(spheres: Sphere[], meshes: Mesh[], bvhs: Bvh[], bg: Background) {
     this.spheres = spheres;
     this.meshes = meshes;
     this.bvhs = bvhs;
+    this.bg = bg;
   }
 
-  static fromGeometry(spheres: Sphere[], meshes: Mesh[]) {
+  static fromGeometry(spheres: Sphere[], meshes: Mesh[], bg: Background) {
     const addIndex = <T>(values: T[]): [number, T][] => values.map((v, i) => [i, v]);
     const mappedSpheres = spheres.map(s => {
       let potato: AabbEncapsulation = {
@@ -164,6 +176,7 @@ export class HittableList {
       spheres,
       meshes,
       HittableList.buildBvh([...addIndex(mappedSpheres), ...addIndex(mappedMeshes)]),
+      bg,
     );
   }
 
