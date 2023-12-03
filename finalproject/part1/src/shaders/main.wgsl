@@ -714,7 +714,8 @@ const infinity = 3.402823466e+38;
 fn ray_color(r: ray) -> color {
     var rec: hit_record;
     var current_ray: ray = r;
-    var c: color = color(1.0, 1.0, 1.0);
+    var reflected: color = color(1.0, 1.0, 1.0);
+    var source: color = color(0.0, 0.0, 0.0);
 
     // No recusion available
     for (var depth: u32 = 0u; depth < config.max_depth; depth++) {
@@ -730,26 +731,30 @@ fn ray_color(r: ray) -> color {
             var attenuation: color;
             var mat: material = materials[rec.mat];
             if (mat.ty == MATERIAL_TYPE_EMISSIVE) {
-                c *= mat.emissive.emissivity;
+                source = mat.emissive.emissivity;
+                break;
             } else if (scatter(rec.mat, current_ray, rec, &attenuation, &scattered)) {
-                c *= attenuation;
+                reflected *= attenuation;
                 current_ray = scattered;
+            } else {
+                // Should be unreachable
+                break;
             }
         } else {
             if (world.bg.use_sky > 0) {
                 // Sky
                 let unit_direction = normalize(r.direction);
                 let t = 0.5 * (unit_direction.y + 1.0);
-                c *= (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
+                source = (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
                 break;
             } else {
-                c *= world.bg.albedo;
+                source = world.bg.albedo;
                 break;
             }
         }
     }
 
-    return c;
+    return reflected * source;
 }
 
 fn color_to_u32(c : color) -> u32 {
