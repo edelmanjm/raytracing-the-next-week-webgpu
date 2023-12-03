@@ -286,13 +286,11 @@ fn get_position(v: vertex) -> vec3f {
     return vec3f(v.px, v.py, v.pz);
 }
 
-const MAX_MESH_INDEX_SIZE = 512;
-
 struct mesh {
-    vertices: array<vertex, MAX_MESH_INDEX_SIZE>,
+    vertices: array<vertex, ${vertexCountOrOne}>,
     verticies_length: u32,
     // The fourth value is a dummy value for padding due to WGSL alignment requirements for uniforms
-    indices: array<vec4<u32>, MAX_MESH_INDEX_SIZE>,
+    indices: array<vec4<u32>, ${indicesCountOrOne}>,
     indices_length: u32,
     mat: material_index,
 }
