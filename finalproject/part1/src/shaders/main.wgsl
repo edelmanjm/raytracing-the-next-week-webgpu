@@ -418,7 +418,7 @@ struct background {
 struct hittable_list {
     spheres: array<sphere, ${sphereCountOrOne}>,
     meshes: array<mesh, ${meshCountOrOne}>,
-    bvhs: array<bvh, ${bvhCount}>,
+    bvhs: array<bvh, ${bvhCountOrOne}>,
     bg: background,
 }
 
