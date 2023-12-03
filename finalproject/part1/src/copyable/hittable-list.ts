@@ -13,12 +13,12 @@ export interface Vertex {
   py: number;
   pz: number;
   // Normals
-  nx: number;
-  ny: number;
-  nz: number;
+  // nx: number;
+  // ny: number;
+  // nz: number;
   // Texture coordinates
-  u: number;
-  v: number;
+  // u: number;
+  // v: number;
 }
 
 export class Mesh {

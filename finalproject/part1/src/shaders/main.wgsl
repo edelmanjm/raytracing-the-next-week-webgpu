@@ -274,12 +274,12 @@ struct vertex {
     py: f32,
     pz: f32,
     // Normals
-    nx: f32,
-    ny: f32,
-    nz: f32,
+//    nx: f32,
+//    ny: f32,
+//    nz: f32,
     // Texture coordinates
-    u: f32,
-    v: f32
+//    u: f32,
+//    v: f32
 }
 
 fn get_position(v: vertex) -> vec3f {

@@ -39,9 +39,9 @@ export function readObj(obj: string): [Vertex[], vec3[]] {
     }
   });
 
-  // For now, just do the face
+  // For now, just do the face and ignore normals/texture mapping
   let lol: Vertex[] = vertices.map(v => {
-    let x: Vertex = { px: v[0], py: v[1], pz: v[2], nx: 0, ny: 0, nz: 0, u: 0, v: 0 };
+    let x: Vertex = { px: v[0], py: v[1], pz: v[2] };
     return x;
   });
   return [lol, faces];
