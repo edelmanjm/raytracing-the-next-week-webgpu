@@ -6,8 +6,7 @@ import {
   FourSphere,
   FourSphereCameraPosition,
   MeshShowcase,
-  BvhTest,
-  EmissionTest,
+  CornellBox,
 } from './scenes.js';
 import { RaytracingConfig } from './copyable/raytracing-config.js';
 import { ListBladeApi, Pane } from 'tweakpane';
@@ -228,7 +227,7 @@ export default class Renderer {
 
     const finalScene = new FinalScene();
     const meshShowcase = new MeshShowcase();
-    this.scene = new EmissionTest();
+    this.scene = new CornellBox();
 
     // View Requirement
     let sceneBlade = this.pane.addBlade({
@@ -398,8 +397,11 @@ export default class Renderer {
     return rgbBuffer;
   }
 
+  // TODO ideally light values shouldn't be dependent on the max number of
+  //  samples per frame, but since we're clamped to a Uint8 at the moment for
+  //  each pixel, I'm not sure what the alternative is.
   frameSamplesPerPixel = {
-    max: 2, // Max per frame (constant)
+    max: 20, // Max per frame (constant)
     left: 0, // How many are left to process this frame
     done: 0, // How many processed so far
   };

@@ -4,8 +4,13 @@ import { CameraInitializeParameters } from './copyable/camera-initialize-paramet
 import { glMatrix, vec3 } from 'gl-matrix';
 import { readObj } from './obj-reader.js';
 import plane from './objs/plane.obj';
+import plane2 from './objs/plane-2.obj';
 import torus from './objs/torus.obj';
 import monkey from './objs/monkey.obj';
+import boxWhite from './objs/cornell-box/box-white.obj';
+import boxRed from './objs/cornell-box/box-red.obj';
+import boxGreen from './objs/cornell-box/box-green.obj';
+import boxLight from './objs/cornell-box/box-light.obj';
 
 export interface Scene {
   shortName: string;
@@ -258,10 +263,12 @@ export class EmissionTest implements Scene {
   shortName: string = 'emission-test';
   static description: string = 'Emission test';
   materials = [
-    Material.createEmissive({ emissivity: [10.0, 0.0, 0.0] }), // Emissive red
+    Material.createLambertian({ albedo: [0.0, 1.0, 0.0] }, 0.5), // Lambertian green
+    Material.createLambertian({ albedo: [1.0, 0.0, 0.0] }, 0.1), // Lambertian red
     Material.createMetal({ albedo: [0.3, 0.3, 0.5], fuzz: 0.0 }, 0.0), // Metal blue-grey glossy
     Material.createMetal({ albedo: [0.3, 0.3, 0.5], fuzz: 0.5 }, 0.0), // Metal blue-grey rough
     Material.createDielectric({ ior: 1.5 }, 0.2), // Dielectric
+    Material.createEmissive({ emissivity: [100.0, 1.0, 1.0] }),
   ];
 
   world: HittableList;
@@ -278,13 +285,57 @@ export class EmissionTest implements Scene {
   constructor() {
     this.world = HittableList.fromGeometry(
       [
-        { center: [0.0, 0.0, -1.0], radius: 0.5, mat: 0 },
-        { center: [0.0, -100.5, -1.0], radius: 100, mat: 2 },
-        { center: [-1.0, 0.0, -1.0], radius: 0.5, mat: 1 },
-        { center: [1.0, 0.0, -1.0], radius: 0.5, mat: 1 },
-        { center: [0.0, 1.0, -2.0], radius: 1.0, mat: 1 },
+        { center: [0.0, 0.0, -1.0], radius: 0.5, mat: 5 },
+        { center: [-1.0, 0.0, -1.0], radius: 0.5, mat: 0 },
+        { center: [1.0, 0.0, -1.0], radius: 0.5, mat: 3 },
+        { center: [0.0, 1.0, -2.0], radius: 1.0, mat: 2 },
       ],
-      [],
+      [new Mesh(...readObj(plane2), 0)],
+      new Background(true, [0, 0, 0]),
+    );
+  }
+}
+
+export class CornellBox implements Scene {
+  shortName: string = 'cornell-box';
+  static description: string =
+    'Scene 12: A Cornell box with three spheres with different materials';
+  materials = [
+    Material.createLambertian({ albedo: [1.0, 1.0, 1.0] }, 0.0),
+    Material.createLambertian({ albedo: [1.0, 0.0, 0.0] }, 0.1),
+    Material.createLambertian({ albedo: [0.0, 1.0, 0.0] }, 0.1),
+    Material.createLambertian({ albedo: [0.0, 0.0, 1.0] }, 0.1),
+    Material.createEmissive({ emissivity: [50.0, 50.0, 50.0] }),
+    Material.createMetal({ albedo: [0.3, 0.3, 0.5], fuzz: 0.0 }, 0.0), // Metal blue-grey glossy
+    Material.createMetal({ albedo: [0.3, 0.3, 0.5], fuzz: 0.5 }, 0.0), // Metal blue-grey rough
+    Material.createDielectric({ ior: 1.5 }, 0.2), // Dielectric
+  ];
+
+  world: HittableList;
+
+  cameraInitializationParameters: CameraInitializeParameters = new CameraInitializeParameters(
+    glMatrix.toRadian(75),
+    [4.75, 0, 0],
+    [-1, 0, 0],
+    [0, 1, 0],
+    glMatrix.toRadian(0.1),
+    5,
+  );
+
+  constructor() {
+    this.world = HittableList.fromGeometry(
+      [
+        { center: [-3.0, -3.0, -3.0], radius: 1.25, mat: 3 },
+        { center: [-3.0, -3.0, 0.0], radius: 1.25, mat: 5 },
+        { center: [-3.0, -3.0, 3.0], radius: 1.25, mat: 7 },
+        // { center: [-1.0, 0, 0], radius: 0.25, mat: 3 },
+      ],
+      [
+        new Mesh(...readObj(boxWhite), 0),
+        new Mesh(...readObj(boxRed), 1),
+        new Mesh(...readObj(boxGreen), 2),
+        new Mesh(...readObj(boxLight), 4),
+      ],
       new Background(false, [0, 0, 0]),
     );
   }
