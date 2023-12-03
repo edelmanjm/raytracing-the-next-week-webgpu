@@ -168,6 +168,8 @@ export default class Renderer {
         }
         this.statsBuffer.unmap();
       }
+
+      this.frameSamplesPerPixel.max = this.scene.samplesPerFrame;
     }
 
     // Raytracing config buffer
@@ -227,7 +229,9 @@ export default class Renderer {
 
     const finalScene = new FinalScene();
     const meshShowcase = new MeshShowcase();
-    this.scene = new CornellBox();
+    const cornellBox = new CornellBox();
+
+    this.scene = fourSphereOptions[0].value;
 
     // View Requirement
     let sceneBlade = this.pane.addBlade({
@@ -237,6 +241,7 @@ export default class Renderer {
         ...fourSphereOptions,
         { text: FinalScene.description, value: finalScene },
         { text: MeshShowcase.description, value: meshShowcase },
+        { text: CornellBox.description, value: cornellBox },
       ],
       value: this.scene,
     }) as ListBladeApi<Scene>;
@@ -290,6 +295,12 @@ export default class Renderer {
     let stats = this.pane.addFolder({
       title: 'Statistics',
       expanded: true,
+    });
+
+    stats.addBinding(this.frameSamplesPerPixel, 'max', {
+      label: 'Max samples per frame',
+      readonly: true,
+      format: v => v.toFixed(0),
     });
 
     stats.addBinding(this.stats, 'frametime', {
@@ -401,7 +412,7 @@ export default class Renderer {
   //  samples per frame, but since we're clamped to a Uint8 at the moment for
   //  each pixel, I'm not sure what the alternative is.
   frameSamplesPerPixel = {
-    max: 20, // Max per frame (constant)
+    max: 10, // Max per frame (constant)
     left: 0, // How many are left to process this frame
     done: 0, // How many processed so far
   };

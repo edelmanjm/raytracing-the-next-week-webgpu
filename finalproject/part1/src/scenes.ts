@@ -17,6 +17,10 @@ export interface Scene {
   materials: Material[];
   world: HittableList;
   cameraInitializationParameters: CameraInitializeParameters;
+  // Certain scenes don't perform well with certain numbers of samples (either
+  // because they time out or because they don't accumulate enough light). This
+  // allows individual scenes to override the default.
+  samplesPerFrame: number;
 }
 
 function randomVec3(): vec3 {
@@ -45,6 +49,8 @@ export class FourSphere implements Scene {
   world: HittableList;
 
   cameraInitializationParameters: CameraInitializeParameters;
+
+  samplesPerFrame = 10;
 
   constructor(cam: FourSphereCameraPosition) {
     this.shortName = `output-${cam}`;
@@ -136,6 +142,7 @@ export class FinalScene implements Scene {
     glMatrix.toRadian(0.6),
     10.0,
   );
+  samplesPerFrame = 10;
 
   constructor() {
     let spheres: Sphere[] = [];
@@ -210,6 +217,8 @@ export class MeshShowcase implements Scene {
     5,
   );
 
+  samplesPerFrame = 2;
+
   constructor() {
     this.world = HittableList.fromGeometry(
       [
@@ -244,6 +253,8 @@ export class BvhTest implements Scene {
     glMatrix.toRadian(0.1),
     5,
   );
+
+  samplesPerFrame = 10;
 
   constructor() {
     this.world = HittableList.fromGeometry(
@@ -281,6 +292,8 @@ export class EmissionTest implements Scene {
     glMatrix.toRadian(0.1),
     5,
   );
+
+  samplesPerFrame = 10;
 
   constructor() {
     this.world = HittableList.fromGeometry(
@@ -321,6 +334,8 @@ export class CornellBox implements Scene {
     glMatrix.toRadian(0.1),
     5,
   );
+
+  samplesPerFrame = 20;
 
   constructor() {
     this.world = HittableList.fromGeometry(
