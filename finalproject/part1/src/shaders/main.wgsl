@@ -374,7 +374,7 @@ fn hit_triangle(v0: vertex, v1: vertex, v2: vertex, mat: material_index, r: ray,
 
     (*rec).t = t;
     (*rec).p = ray_at(r, t);
-    set_face_normal(rec, r, cross(v0v1, v0v2));
+    set_face_normal(rec, r, normalize(cross(v0v1, v0v2)));
     (*rec).mat = mat;
 
     return true;
