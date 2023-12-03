@@ -130,8 +130,8 @@ export class FourSphere implements Scene {
 }
 
 export class FinalScene implements Scene {
-  shortName = 'output-10';
-  static description: string = 'Scene 10: Many random spheres (final scene)';
+  shortName = 'output-5';
+  static description: string = 'Scene 5: Many random spheres (final scene)';
   materials: Material[] = [];
   world: HittableList;
   cameraInitializationParameters = new CameraInitializeParameters(
@@ -195,9 +195,39 @@ export class FinalScene implements Scene {
   }
 }
 
+export class SimpleMesh implements Scene {
+  shortName: string = 'output-6';
+  static description: string = 'Scene 6: A single torus mesh';
+  materials = [
+    Material.createLambertian({ albedo: [0.0, 1.0, 0.0] }, 0.9), // Lambertian green
+    Material.createMetal({ albedo: [0.3, 0.3, 0.5], fuzz: 0.5 }, 0.0), // Metal blue-grey rough
+  ];
+
+  world: HittableList;
+
+  cameraInitializationParameters: CameraInitializeParameters = new CameraInitializeParameters(
+    glMatrix.toRadian(50),
+    [0, 5, 0.5],
+    [0, 4.25, 0],
+    [0, 1, 0],
+    glMatrix.toRadian(0.1),
+    5,
+  );
+
+  samplesPerFrame = 5;
+
+  constructor() {
+    this.world = HittableList.fromGeometry(
+      [],
+      [new Mesh(...readObj(torus), 0)],
+      new Background(true, [0, 0, 0]),
+    );
+  }
+}
+
 export class MeshShowcase implements Scene {
-  shortName: string = 'output-11';
-  static description: string = 'Scene 11: Multiple meshes';
+  shortName: string = 'output-7';
+  static description: string = 'Scene 7: Multiple meshes';
   materials = [
     Material.createLambertian({ albedo: [0.0, 1.0, 0.0] }, 0.5), // Lambertian green
     Material.createLambertian({ albedo: [1.0, 0.0, 0.0] }, 0.1), // Lambertian red
@@ -311,8 +341,7 @@ export class EmissionTest implements Scene {
 
 export class CornellBox implements Scene {
   shortName: string = 'cornell-box';
-  static description: string =
-    'Scene 12: A Cornell box with three spheres with different materials';
+  static description: string = 'Scene 8: A Cornell box with three spheres with different materials';
   materials = [
     Material.createLambertian({ albedo: [1.0, 1.0, 1.0] }, 0.0),
     Material.createLambertian({ albedo: [1.0, 0.0, 0.0] }, 0.1),

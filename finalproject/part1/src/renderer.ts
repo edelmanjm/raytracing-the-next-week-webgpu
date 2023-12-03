@@ -7,6 +7,7 @@ import {
   FourSphereCameraPosition,
   MeshShowcase,
   CornellBox,
+  SimpleMesh,
 } from './scenes.js';
 import { RaytracingConfig } from './copyable/raytracing-config.js';
 import { ListBladeApi, Pane } from 'tweakpane';
@@ -230,6 +231,7 @@ export default class Renderer {
     });
 
     const finalScene = new FinalScene();
+    const simpleMesh = new SimpleMesh();
     const meshShowcase = new MeshShowcase();
     const cornellBox = new CornellBox();
 
@@ -242,6 +244,7 @@ export default class Renderer {
       options: [
         ...fourSphereOptions,
         { text: FinalScene.description, value: finalScene },
+        { text: SimpleMesh.description, value: simpleMesh },
         { text: MeshShowcase.description, value: meshShowcase },
         { text: CornellBox.description, value: cornellBox },
       ],
