@@ -156,10 +156,6 @@ export class HittableList {
     this.bg = bg;
   }
 
-  static fromSpheres(spheres: Sphere[], bg: Background) {
-    return new HittableList(spheres, [], [], bg);
-  }
-
   static async fromGeometry(spheres: Sphere[], meshes: Mesh[], bg: Background) {
     const addIndex = <T>(values: T[]): [number, T][] => values.map((v, i) => [i, v]);
     const mappedSpheres = spheres.map(s => {

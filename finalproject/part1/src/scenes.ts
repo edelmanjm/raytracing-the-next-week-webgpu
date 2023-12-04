@@ -140,7 +140,7 @@ export class FourSphere extends Scene {
 
   initWorld(): Promise<HittableList> {
     return Promise.resolve(
-      HittableList.fromSpheres(
+      HittableList.fromGeometry(
         [
           { center: [0.0, 0.0, -1.0], radius: 0.5, mat: 0 },
           { center: [0.0, -100.5, -1.0], radius: 100, mat: 1 },
@@ -148,6 +148,7 @@ export class FourSphere extends Scene {
           { center: [1.0, 0.0, -1.0], radius: 0.5, mat: 3 },
           { center: [0.0, 1.0, -2.0], radius: 1.0, mat: 2 },
         ],
+        [],
         new Background(true, [0, 0, 0]),
       ),
     );
@@ -223,7 +224,9 @@ export class FinalScene extends Scene {
   }
 
   initWorld(): Promise<HittableList> {
-    return Promise.resolve(HittableList.fromSpheres(this.spheres, new Background(true, [0, 0, 0])));
+    return Promise.resolve(
+      HittableList.fromGeometry(this.spheres, [], new Background(true, [0, 0, 0])),
+    );
   }
 }
 
