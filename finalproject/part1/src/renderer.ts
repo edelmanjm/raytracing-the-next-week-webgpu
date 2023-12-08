@@ -9,6 +9,7 @@ import {
   CornellBox,
   SimpleMesh,
   VolumeTest,
+  CornellBoxWithVolumes,
 } from './scenes.js';
 import { RaytracingConfig } from './copyable/raytracing-config.js';
 import { ListBladeApi, Pane } from 'tweakpane';

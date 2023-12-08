@@ -11,6 +11,7 @@ import { CameraInitializeParameters } from './copyable/camera-initialize-paramet
 import { glMatrix, vec3 } from 'gl-matrix';
 import { readObj } from './obj-reader.js';
 import plane from './objs/plane.obj';
+import cube from './objs/cube.obj';
 import plane2 from './objs/plane-2.obj';
 import torus from './objs/torus.obj';
 import monkey from './objs/monkey.obj';
@@ -18,6 +19,8 @@ import boxWhite from './objs/cornell-box/box-white.obj';
 import boxRed from './objs/cornell-box/box-red.obj';
 import boxGreen from './objs/cornell-box/box-green.obj';
 import boxLight from './objs/cornell-box/box-light.obj';
+import volume0 from './objs/cornell-box/volume-0.obj';
+import volume1 from './objs/cornell-box/volume-1.obj';
 
 export abstract class Scene {
   shortName: string;
@@ -386,7 +389,7 @@ export class VolumeTest extends Scene {
     super(
       'volume-test',
       'Volume test',
-      [Material.createIsotropic({ albedo: [0.5, 0.5, 0.5] }, 0.5)],
+      [Material.createIsotropic({ albedo: [0.5, 0.5, 0.5] }, 0.0)],
       new CameraInitializeParameters(
         glMatrix.toRadian(50),
         [0, 2, 3],
@@ -402,7 +405,7 @@ export class VolumeTest extends Scene {
     return HittableList.fromGeometry(
       [],
       [],
-      [VolumeEncapsulation.fromSphere(new Sphere([-1.0, 0.0, -1.0], 0.5, 0), 0.5, 0)],
+      [VolumeEncapsulation.fromMesh(new Mesh(...readObj(cube), 0), 0.01, 0)],
       new Background(true, [0, 0, 0]),
     );
   }
@@ -450,6 +453,50 @@ export class CornellBox extends Scene {
         new Mesh(...readObj(boxLight), 4),
       ],
       [],
+      new Background(false, [0, 0, 0]),
+    );
+  }
+}
+
+export class CornellBoxWithVolumes extends Scene {
+  constructor() {
+    super(
+      'cornell-box-volumes',
+      'Scene 8: A Cornell box with two volumetric boxes',
+      [
+        Material.createLambertian({ albedo: [1.0, 1.0, 1.0] }, 0.0),
+        Material.createLambertian({ albedo: [1.0, 0.0, 0.0] }, 0.1),
+        Material.createLambertian({ albedo: [0.0, 1.0, 0.0] }, 0.1),
+        Material.createLambertian({ albedo: [0.0, 0.0, 1.0] }, 0.1),
+        Material.createEmissive({ emissivity: [50.0, 50.0, 50.0] }),
+        Material.createIsotropic({ albedo: [0.0, 0.0, 0.0] }, 1.0),
+        Material.createIsotropic({ albedo: [1.0, 1.0, 1.0] }, 1.0),
+      ],
+      new CameraInitializeParameters(
+        glMatrix.toRadian(75),
+        [4.75, 0, 0],
+        [-1, 0, 0],
+        [0, 1, 0],
+        glMatrix.toRadian(0.1),
+        5,
+      ),
+      20,
+    );
+  }
+
+  initWorld(): Promise<HittableList> {
+    return HittableList.fromGeometry(
+      [],
+      [
+        new Mesh(...readObj(boxWhite), 0),
+        new Mesh(...readObj(boxRed), 1),
+        new Mesh(...readObj(boxGreen), 2),
+        new Mesh(...readObj(boxLight), 4),
+      ],
+      [
+        VolumeEncapsulation.fromMesh(new Mesh(...readObj(volume0), 5), 0.01, 5),
+        VolumeEncapsulation.fromMesh(new Mesh(...readObj(volume1), 6), 0.01, 6),
+      ],
       new Background(false, [0, 0, 0]),
     );
   }
