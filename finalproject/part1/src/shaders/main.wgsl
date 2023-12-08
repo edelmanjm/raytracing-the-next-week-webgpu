@@ -221,7 +221,7 @@ fn scatter(mat_i: material_index, r_in: ray, rec: hit_record, attenuation: ptr<f
             return true;
         }
         // case MATERIAL_TYPE_ISOTROPIC: {
-        case 3u: {
+        case 4u: {
             (*scattered) = ray(rec.p, random_unit_vector(), r_in.strength * (1.0 - mat.absorption));
             (*attenuation) = mat.isotropic.albedo;
             return true;

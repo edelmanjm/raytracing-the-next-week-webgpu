@@ -87,7 +87,7 @@ export interface Volume {
   sphere_index: number;
   mesh_index: number;
   density: number;
-  material_index: number;
+  mat: number;
 }
 
 export class VolumeEncapsulation implements Boundable {
@@ -238,7 +238,7 @@ export class HittableList {
           sphere_index: spheresAndVolumes.length - 1,
           mesh_index: -1,
           density: v.density,
-          material_index: v.material_index,
+          mat: v.material_index,
         };
       }
       if (v.underlyingMesh) {
@@ -247,7 +247,7 @@ export class HittableList {
           sphere_index: -1,
           mesh_index: meshesAndVolumes.length - 1,
           density: v.density,
-          material_index: v.material_index,
+          mat: v.material_index,
         };
       }
       throw new Error('Missing underlying type for volume');
