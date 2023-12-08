@@ -87,14 +87,16 @@ export interface Volume {
   sphere_index: number;
   mesh_index: number;
   density: number;
+  material_index: number;
 }
 
 export class VolumeEncapsulation implements Boundable {
   underlyingSphere?: Sphere;
   underlyingMesh?: Mesh;
   density: number;
+  material_index: number;
 
-  private constructor(s: Sphere | null, m: Mesh | null, density: number) {
+  private constructor(s: Sphere | null, m: Mesh | null, density: number, material_index: number) {
     if (s != null) {
       this.underlyingSphere = s;
     }
@@ -102,14 +104,15 @@ export class VolumeEncapsulation implements Boundable {
       this.underlyingMesh = m;
     }
     this.density = density;
+    this.material_index = material_index;
   }
 
-  static fromSphere(s: Sphere, density: number) {
-    return new VolumeEncapsulation(s, null, density);
+  static fromSphere(s: Sphere, density: number, material_index: number) {
+    return new VolumeEncapsulation(s, null, density, material_index);
   }
 
-  static fromMesh(m: Mesh, density: number) {
-    return new VolumeEncapsulation(null, m, density);
+  static fromMesh(m: Mesh, density: number, material_index: number) {
+    return new VolumeEncapsulation(null, m, density, material_index);
   }
 
   getAabb(): Aabb {
@@ -231,11 +234,21 @@ export class HittableList {
     let volumes: Volume[] = volumeEncapsulations.map(v => {
       if (v.underlyingSphere) {
         spheresAndVolumes.push(v.underlyingSphere);
-        return { sphere_index: spheresAndVolumes.length - 1, mesh_index: -1, density: v.density };
+        return {
+          sphere_index: spheresAndVolumes.length - 1,
+          mesh_index: -1,
+          density: v.density,
+          material_index: v.material_index,
+        };
       }
       if (v.underlyingMesh) {
         meshesAndVolumes.push(v.underlyingMesh);
-        return { sphere_index: -1, mesh_index: meshesAndVolumes.length - 1, density: v.density };
+        return {
+          sphere_index: -1,
+          mesh_index: meshesAndVolumes.length - 1,
+          density: v.density,
+          material_index: v.material_index,
+        };
       }
       throw new Error('Missing underlying type for volume');
     });

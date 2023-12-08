@@ -126,6 +126,7 @@ const MATERIAL_TYPE_LAMBERTIAN: material_type = 0u;
 const MATERIAL_TYPE_METAL: material_type = 1u;
 const MATERIAL_TYPE_DIELECTRIC: material_type = 2u;
 const MATERIAL_TYPE_EMISSIVE: material_type = 3u;
+const MATERIAL_TYPE_ISOTROPIC: material_type = 4u;
 
 struct material_lambertian {
     albedo: color,
@@ -144,12 +145,17 @@ struct material_emissive {
     emissivity: color,
 }
 
+struct material_isotropic {
+    albedo: color,
+}
+
 struct material {
     ty: material_type,
     lambertian: material_lambertian,
     metal: material_metal,
     dielectric: material_dielectric,
     emissive: material_emissive,
+    isotropic: material_isotropic,
     // Alignment is required to use as a uniform
     @align(16) absorption: f32,
 }
@@ -212,6 +218,12 @@ fn scatter(mat_i: material_index, r_in: ray, rec: hit_record, attenuation: ptr<f
             }
 
             (*scattered) = ray(rec.p, direction, r_in.strength * (1.0 - mat.absorption));
+            return true;
+        }
+        // case MATERIAL_TYPE_ISOTROPIC: {
+        case 3u: {
+            (*scattered) = ray(rec.p, random_unit_vector(), r_in.strength * (1.0 - mat.absorption));
+            (*attenuation) = mat.isotropic.albedo;
             return true;
         }
         default: {
@@ -299,6 +311,7 @@ struct volume {
     sphere_index: i32,
     mesh_index: i32,
     density: f32,
+    mat: material_index,
 }
 
 struct aabb {
@@ -462,8 +475,9 @@ fn hit_volume(v: volume, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function
 
     (*rec).normal = vec3f(1, 0, 0);  // arbitrary
     (*rec).front_face = true;     // also arbitrary
-//    rec.mat = phase_function;
+    (*rec).mat = v.mat;
 
+    compute_stats.ray_object_intersection_count++;
     return true;
 }
 
