@@ -250,7 +250,7 @@ export default class Renderer {
       cornellBox.getWorld(),
     ]);
 
-    this.scene = new VolumeTest();
+    this.scene = new CornellBoxWithVolumes();
     await this.scene.getWorld();
 
     // View Requirement
