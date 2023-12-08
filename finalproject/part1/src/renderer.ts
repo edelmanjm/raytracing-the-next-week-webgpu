@@ -238,6 +238,7 @@ export default class Renderer {
     const simpleMesh = new SimpleMesh();
     const meshShowcase = new MeshShowcase();
     const cornellBox = new CornellBox();
+    const cornellBoxVolumes = new CornellBoxWithVolumes();
 
     // Cache the hittable lists ahead of time
     await Promise.all([
@@ -248,9 +249,10 @@ export default class Renderer {
       simpleMesh.getWorld(),
       meshShowcase.getWorld(),
       cornellBox.getWorld(),
+      cornellBoxVolumes.getWorld(),
     ]);
 
-    this.scene = new CornellBoxWithVolumes();
+    this.scene = fourSphereOptions[0].value;
     await this.scene.getWorld();
 
     // View Requirement
@@ -263,6 +265,7 @@ export default class Renderer {
         { text: simpleMesh.description, value: simpleMesh },
         { text: meshShowcase.description, value: meshShowcase },
         { text: cornellBox.description, value: cornellBox },
+        { text: cornellBoxVolumes.description, value: cornellBoxVolumes },
       ],
       value: this.scene,
     }) as ListBladeApi<Scene>;
@@ -274,7 +277,7 @@ export default class Renderer {
     let samplesBinding = this.pane.addBinding(this.raytracingConfig, 'samples_per_pixel', {
       label: 'Samples Per Pixel',
       min: 1,
-      max: 250,
+      max: 1000,
       step: 1,
     });
     samplesBinding.on('change', ev => {
@@ -297,7 +300,7 @@ export default class Renderer {
     let depthBinding = this.pane.addBinding(this.raytracingConfig, 'max_depth', {
       label: 'Max Ray Depth',
       min: 1,
-      max: 100,
+      max: 25,
       step: 1,
     });
     depthBinding.on('change', ev => {
