@@ -298,6 +298,7 @@ struct mesh {
 struct volume {
     sphere_index: i32,
     mesh_index: i32,
+    density: f32,
 }
 
 struct aabb {
@@ -408,6 +409,64 @@ fn hit_mesh(m: mesh, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hi
     return hit_anything;
 }
 
+fn hit_volume(v: volume, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hit_record>) -> bool {
+    compute_stats.ray_cast_count++;
+
+    var rec1: hit_record;
+    var rec2: hit_record;
+
+    if (v.sphere_index > 0) {
+        if (!hit_sphere(world.spheres[v.sphere_index], r, ray_tmin, ray_tmax, &rec1)) {
+            return false;
+        }
+        if (!hit_sphere(world.spheres[v.sphere_index], r, rec1.t + 0.0001, infinity, &rec2)) {
+            return false;
+        }
+    } else if (v.mesh_index > 0) {
+        if (!hit_mesh(world.meshes[v.mesh_index], r, ray_tmin, ray_tmax, &rec1)) {
+            return false;
+        }
+
+        if (!hit_mesh(world.meshes[v.mesh_index], r, rec1.t + 0.0001, infinity, &rec2)) {
+            return false;
+        }
+    } else {
+        return false;
+    }
+
+    if (rec1.t < ray_tmin) {
+        rec1.t = ray_tmin;
+    }
+    if (rec2.t > ray_tmax) {
+         rec2.t = ray_tmax;
+    }
+
+    if (rec1.t >= rec2.t) {
+        return false;
+    }
+
+    if (rec1.t < 0) {
+        rec1.t = 0;
+    }
+
+    let ray_length: f32 = length(r.direction);
+    let distance_inside_boundary: f32 = (rec2.t - rec1.t) * ray_length;
+    let hit_distance = (-1 / v.density) * log(random_f32());
+
+    if (hit_distance > distance_inside_boundary) {
+        return false;
+    }
+
+    (*rec).t = rec1.t + hit_distance / ray_length;
+    (*rec).p = ray_at(r, (*rec).t);
+
+    (*rec).normal = vec3f(1, 0, 0);  // arbitrary
+    (*rec).front_face = true;     // also arbitrary
+//    rec.mat = phase_function;
+
+    return true;
+}
+
 fn hit_aabb(box: aabb, r: ray, ray_tmin: f32, ray_tmax: f32) -> bool {
     for (var a: u32 = 0u; a < 3u; a++) {
         let inv_d: f32 = 1.0 / r.direction[a];
@@ -461,7 +520,7 @@ struct hittable_list {
 @group(0) @binding(2)
 var<storage> world: hittable_list;
 
-fn hit_hittables(sphere_index: i32, mesh_index: i32, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hit_record>) -> bool {
+fn hit_hittables(sphere_index: i32, mesh_index: i32, volume_index: i32, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hit_record>) -> bool {
     var hit_anything: bool = false;
     var temp_rec: hit_record;
     var closest_so_far: f32 = ray_tmax;
@@ -483,6 +542,14 @@ fn hit_hittables(sphere_index: i32, mesh_index: i32, r: ray, ray_tmin: f32, ray_
         }
     }
 
+     if (volume_index >= 0 && volume_index < ${volumeCount}) {
+        if (hit_volume(world.volumes[volume_index], r, ray_tmin, closest_so_far, &temp_rec)) {
+            hit_anything = true;
+            closest_so_far = temp_rec.t;
+            (*rec) = temp_rec;
+        }
+    }
+
     return hit_anything;
 }
 
@@ -492,7 +559,7 @@ fn hit_hittable_list(r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hi
     var closest_so_far: f32 = ray_tmax;
 
     for (var sphere_index: u32 = 0u; sphere_index < world.spheres_length; sphere_index++) {
-        if (hit_hittables(i32(sphere_index), -1, r, ray_tmin, closest_so_far, &temp_rec)) {
+        if (hit_hittables(i32(sphere_index), -1, -1, r, ray_tmin, closest_so_far, &temp_rec)) {
             hit_anything = true;
             closest_so_far = temp_rec.t;
             (*rec) = temp_rec;
@@ -500,7 +567,15 @@ fn hit_hittable_list(r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hi
     }
 
     for (var mesh_index: u32 = 0u; mesh_index < world.meshes_length; mesh_index++) {
-        if (hit_hittables(-1, i32(mesh_index), r, ray_tmin, closest_so_far, &temp_rec)) {
+        if (hit_hittables(-1, i32(mesh_index), -1, r, ray_tmin, closest_so_far, &temp_rec)) {
+            hit_anything = true;
+            closest_so_far = temp_rec.t;
+            (*rec) = temp_rec;
+        }
+    }
+
+    for (var volume_index: u32 = 0u; volume_index < ${volumeCount}u; volume_index++) {
+        if (hit_hittables(-1, -1, i32(volume_index), r, ray_tmin, closest_so_far, &temp_rec)) {
             hit_anything = true;
             closest_so_far = temp_rec.t;
             (*rec) = temp_rec;
@@ -536,7 +611,7 @@ fn hit_bvh(bvh_index: u32, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<functi
                 compute_stats.ray_bv_intersection_count++;
                 if (b.left_index < 0 && b.right_index < 0) {
                     // Leaf
-                    if (hit_hittables(b.sphere_index, b.mesh_index, r, ray_tmin, closest_so_far, &temp_rec)) {
+                    if (hit_hittables(b.sphere_index, b.mesh_index, b.volume_index, r, ray_tmin, closest_so_far, &temp_rec)) {
                         hit_anything = true;
                         closest_so_far = temp_rec.t;
                         (*rec) = temp_rec;

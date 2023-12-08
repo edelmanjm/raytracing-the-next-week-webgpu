@@ -86,27 +86,30 @@ export class Mesh implements Boundable {
 export interface Volume {
   sphere_index: number;
   mesh_index: number;
+  density: number;
 }
 
 export class VolumeEncapsulation implements Boundable {
   underlyingSphere?: Sphere;
   underlyingMesh?: Mesh;
+  density: number;
 
-  private constructor(s: Sphere | null, m: Mesh | null) {
+  private constructor(s: Sphere | null, m: Mesh | null, density: number) {
     if (s != null) {
       this.underlyingSphere = s;
     }
     if (m != null) {
       this.underlyingMesh = m;
     }
+    this.density = density;
   }
 
-  static fromSphere(s: Sphere) {
-    return new VolumeEncapsulation(s, null);
+  static fromSphere(s: Sphere, density: number) {
+    return new VolumeEncapsulation(s, null, density);
   }
 
-  static fromMesh(m: Mesh) {
-    return new VolumeEncapsulation(null, m);
+  static fromMesh(m: Mesh, density: number) {
+    return new VolumeEncapsulation(null, m, density);
   }
 
   getAabb(): Aabb {
@@ -228,11 +231,11 @@ export class HittableList {
     let volumes: Volume[] = volumeEncapsulations.map(v => {
       if (v.underlyingSphere) {
         spheresAndVolumes.push(v.underlyingSphere);
-        return { sphere_index: spheresAndVolumes.length - 1, mesh_index: -1 };
+        return { sphere_index: spheresAndVolumes.length - 1, mesh_index: -1, density: v.density };
       }
       if (v.underlyingMesh) {
         meshesAndVolumes.push(v.underlyingMesh);
-        return { sphere_index: -1, mesh_index: meshesAndVolumes.length - 1 };
+        return { sphere_index: -1, mesh_index: meshesAndVolumes.length - 1, density: v.density };
       }
       throw new Error('Missing underlying type for volume');
     });
