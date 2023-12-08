@@ -429,14 +429,14 @@ fn hit_volume(v: volume, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function
     var rec2: hit_record;
 
     if (v.sphere_index >= 0) {
-        if (!hit_sphere(world.spheres[v.sphere_index], r, ray_tmin, ray_tmax, &rec1)) {
+        if (!hit_sphere(world.spheres[v.sphere_index], r, -infinity, infinity, &rec1)) {
             return false;
         }
         if (!hit_sphere(world.spheres[v.sphere_index], r, rec1.t + 0.0001, infinity, &rec2)) {
             return false;
         }
     } else if (v.mesh_index >= 0) {
-        if (!hit_mesh(world.meshes[v.mesh_index], r, ray_tmin, ray_tmax, &rec1)) {
+        if (!hit_mesh(world.meshes[v.mesh_index], r, -infinity, infinity, &rec1)) {
             return false;
         }
 
@@ -462,15 +462,15 @@ fn hit_volume(v: volume, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function
         rec1.t = 0;
     }
 
-    let ray_length: f32 = length(r.direction);
-    let distance_inside_boundary: f32 = (rec2.t - rec1.t) * ray_length;
-    let hit_distance = (-1 / v.density) * log(random_f32());
+    let distance_inside_boundary: f32 = (rec2.t - rec1.t);
+    let hit_cutoff = (v.density * distance_inside_boundary) / (v.density * distance_inside_boundary + 1);
+    let random = random_f32();
 
-    if (hit_distance > distance_inside_boundary) {
+    if (hit_cutoff < random) {
         return false;
     }
 
-    (*rec).t = rec1.t + hit_distance / ray_length;
+    (*rec).t = rec1.t + random * distance_inside_boundary;
     (*rec).p = ray_at(r, (*rec).t);
 
     (*rec).normal = vec3f(1, 0, 0);  // arbitrary
