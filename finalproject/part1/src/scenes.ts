@@ -1,5 +1,12 @@
 import { Material } from './copyable/materials.js';
-import { Background, Bvh, HittableList, Mesh, Sphere } from './copyable/hittable-list.js';
+import {
+  Background,
+  Bvh,
+  HittableList,
+  Mesh,
+  Sphere,
+  VolumeEncapsulation,
+} from './copyable/hittable-list.js';
 import { CameraInitializeParameters } from './copyable/camera-initialize-parameters.js';
 import { glMatrix, vec3 } from 'gl-matrix';
 import { readObj } from './obj-reader.js';
@@ -369,6 +376,33 @@ export class EmissionTest extends Scene {
       ],
       [new Mesh(...readObj(plane2), 0)],
       [],
+      new Background(true, [0, 0, 0]),
+    );
+  }
+}
+
+export class VolumeTest extends Scene {
+  constructor() {
+    super(
+      'volume-test',
+      'Volume test',
+      [Material.createIsotropic({ albedo: [0.5, 0.5, 0.5] }, 0.5)],
+      new CameraInitializeParameters(
+        glMatrix.toRadian(50),
+        [0, 2, 3],
+        [0, 1, 0],
+        [0, 1, 0],
+        glMatrix.toRadian(0.1),
+        5,
+      ),
+    );
+  }
+
+  initWorld(): Promise<HittableList> {
+    return HittableList.fromGeometry(
+      [],
+      [],
+      [VolumeEncapsulation.fromSphere(new Sphere([-1.0, 0.0, -1.0], 0.5, 0), 0.5, 0)],
       new Background(true, [0, 0, 0]),
     );
   }

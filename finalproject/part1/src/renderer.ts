@@ -8,6 +8,7 @@ import {
   MeshShowcase,
   CornellBox,
   SimpleMesh,
+  VolumeTest,
 } from './scenes.js';
 import { RaytracingConfig } from './copyable/raytracing-config.js';
 import { ListBladeApi, Pane } from 'tweakpane';
@@ -248,7 +249,8 @@ export default class Renderer {
       cornellBox.getWorld(),
     ]);
 
-    this.scene = fourSphereOptions[0].value;
+    this.scene = new VolumeTest();
+    await this.scene.getWorld();
 
     // View Requirement
     let sceneBlade = this.pane.addBlade({
