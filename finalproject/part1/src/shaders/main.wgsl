@@ -428,14 +428,14 @@ fn hit_volume(v: volume, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function
     var rec1: hit_record;
     var rec2: hit_record;
 
-    if (v.sphere_index > 0) {
+    if (v.sphere_index >= 0) {
         if (!hit_sphere(world.spheres[v.sphere_index], r, ray_tmin, ray_tmax, &rec1)) {
             return false;
         }
         if (!hit_sphere(world.spheres[v.sphere_index], r, rec1.t + 0.0001, infinity, &rec2)) {
             return false;
         }
-    } else if (v.mesh_index > 0) {
+    } else if (v.mesh_index >= 0) {
         if (!hit_mesh(world.meshes[v.mesh_index], r, ray_tmin, ray_tmax, &rec1)) {
             return false;
         }
