@@ -295,6 +295,11 @@ struct mesh {
     mat: material_index,
 }
 
+struct volume {
+    sphere_index: i32,
+    mesh_index: i32,
+}
+
 struct aabb {
     min: vec3f,
     max: vec3f
@@ -407,6 +412,7 @@ struct bvh {
     right_index: i32,
     sphere_index: i32,
     mesh_index: i32,
+    volume_index: i32,
 }
 
 struct background {
@@ -416,8 +422,13 @@ struct background {
 }
 
 struct hittable_list {
+    // Length fields allow the spheres/meshes underlying the volumes to be stored in the same array without breaking the
+    // non-BVH hit calculations.
     spheres: array<sphere, ${sphereCountOrOne}>,
+    spheres_length: u32,
     meshes: array<mesh, ${meshCountOrOne}>,
+    meshes_length: u32,
+    volumes: array<volume, ${volumeCountOrOne}>,
     bvhs: array<bvh, ${bvhCountOrOne}>,
     bg: background,
 }
@@ -430,7 +441,7 @@ fn hit_hittables(sphere_index: i32, mesh_index: i32, r: ray, ray_tmin: f32, ray_
     var temp_rec: hit_record;
     var closest_so_far: f32 = ray_tmax;
 
-    if (sphere_index >= 0 && sphere_index < ${sphereCount}) {
+    if (sphere_index >= 0 && sphere_index < i32(world.spheres_length)) {
         compute_stats.ray_cast_count++;
         if (hit_sphere(world.spheres[sphere_index], r, ray_tmin, closest_so_far, &temp_rec)) {
             compute_stats.ray_object_intersection_count++;
@@ -440,7 +451,7 @@ fn hit_hittables(sphere_index: i32, mesh_index: i32, r: ray, ray_tmin: f32, ray_
         }
     }
 
-    if (mesh_index >= 0 && mesh_index < ${meshCount}) {
+    if (mesh_index >= 0 && mesh_index < i32(world.meshes_length)) {
         var current_mesh: mesh = world.meshes[mesh_index];
         for (var i: u32 = 0u; i < current_mesh.indices_length; i++) {
             let i0 = current_mesh.indices[i][0];
@@ -464,7 +475,7 @@ fn hit_hittable_list(r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hi
     var hit_anything: bool = false;
     var closest_so_far: f32 = ray_tmax;
 
-    for (var sphere_index: u32 = 0u; sphere_index < ${sphereCount}u; sphere_index++) {
+    for (var sphere_index: u32 = 0u; sphere_index < world.spheres_length; sphere_index++) {
         if (hit_hittables(i32(sphere_index), -1, r, ray_tmin, closest_so_far, &temp_rec)) {
             hit_anything = true;
             closest_so_far = temp_rec.t;
@@ -472,7 +483,7 @@ fn hit_hittable_list(r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hi
         }
     }
 
-    for (var mesh_index: u32 = 0u; mesh_index < ${meshCount}u; mesh_index++) {
+    for (var mesh_index: u32 = 0u; mesh_index < world.meshes_length; mesh_index++) {
         if (hit_hittables(-1, i32(mesh_index), r, ray_tmin, closest_so_far, &temp_rec)) {
             hit_anything = true;
             closest_so_far = temp_rec.t;
@@ -481,37 +492,6 @@ fn hit_hittable_list(r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hi
     }
 
     return hit_anything;
-
-//    var temp_rec: hit_record;
-//    var hit_anything: bool = false;
-//    var closest_so_far: f32 = ray_tmax;
-//
-//    for (var sphere_index: u32 = 0u; i < ${sphereCount}u; sphere_index++) {
-//        if (hit_sphere(world.spheres[sphere_index], r, ray_tmin, closest_so_far, &temp_rec)) {
-//            compute_stats.ray_object_intersection_count += 1;
-//            hit_anything = true;
-//            closest_so_far = temp_rec.t;
-//            (*rec) = temp_rec;
-//        }
-//    }
-//
-//    for (var mesh_index: u32 = 0u; mesh_index < ${meshCount}u; mesh_index++) {
-//        var current_mesh: mesh = world.meshes[mesh_index];
-//        for (var i: u32 = 0; i < current_mesh.indices_length; i++) {
-//            let i0 = current_mesh.indices[i][0];
-//            let i1 = current_mesh.indices[i][1];
-//            let i2 = current_mesh.indices[i][2];
-//            if (hit_triangle(current_mesh.vertices[i0], current_mesh.vertices[i1], current_mesh.vertices[i2], current_mesh.mat, r, ray_tmin, closest_so_far, &temp_rec)) {
-//                compute_stats.ray_object_intersection_count += 1;
-//                hit_anything = true;
-//                closest_so_far = temp_rec.t;
-//                (*rec) = temp_rec;
-//            }
-//        }
-//    }
-//
-//    compute_stats.ray_cast_count += ${sphereCount} + ${meshCount};
-//    return hit_anything;
 }
 
 fn hit_bvh(bvh_index: u32, r: ray, ray_tmin: f32, ray_tmax: f32, rec: ptr<function, hit_record>) -> bool {

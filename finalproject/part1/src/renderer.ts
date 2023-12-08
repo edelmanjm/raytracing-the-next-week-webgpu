@@ -108,6 +108,7 @@ export default class Renderer {
       world.meshes.length,
       world.meshes.map(m => m.vertices.length).reduce((sum, current) => sum + current, 0),
       world.meshes.map(m => m.indices.length).reduce((sum, current) => sum + current, 0),
+      world.volumes.length,
       world.bvhs.length,
     );
     const defs = makeShaderDataDefinitions(code);
@@ -380,7 +381,7 @@ export default class Renderer {
 
     // Stats read buffer
     {
-      const code: string = getShader(this.wgSize, this.width, this.height, 0, 0, 0, 0, 0, 0);
+      const code: string = getShader(this.wgSize, this.width, this.height, 0, 0, 0, 0, 0, 0, 0);
       const defs = makeShaderDataDefinitions(code);
 
       const statsView = makeStructuredView(defs.storages.compute_stats);

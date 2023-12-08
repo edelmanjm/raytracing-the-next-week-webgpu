@@ -142,12 +142,13 @@ export class FourSphere extends Scene {
     return Promise.resolve(
       HittableList.fromGeometry(
         [
-          { center: [0.0, 0.0, -1.0], radius: 0.5, mat: 0 },
-          { center: [0.0, -100.5, -1.0], radius: 100, mat: 1 },
-          { center: [-1.0, 0.0, -1.0], radius: 0.5, mat: 4 },
-          { center: [1.0, 0.0, -1.0], radius: 0.5, mat: 3 },
-          { center: [0.0, 1.0, -2.0], radius: 1.0, mat: 2 },
+          new Sphere([0.0, 0.0, -1.0], 0.5, 0),
+          new Sphere([0.0, -100.5, -1.0], 100, 1),
+          new Sphere([-1.0, 0.0, -1.0], 0.5, 4),
+          new Sphere([1.0, 0.0, -1.0], 0.5, 3),
+          new Sphere([0.0, 1.0, -2.0], 1.0, 2),
         ],
+        [],
         [],
         new Background(true, [0, 0, 0]),
       ),
@@ -189,22 +190,22 @@ export class FinalScene extends Scene {
           }
 
           materials.push(sphereMaterial);
-          spheres.push({ center: center, radius: 0.2, mat: materials.length - 1 });
+          spheres.push(new Sphere(center, 0.2, materials.length - 1));
         }
       }
     }
 
     materials.push(Material.createLambertian({ albedo: [0.5, 0.5, 0.5] }, 0.0));
-    spheres.push({ center: [0, -1000, 0], radius: 1000, mat: materials.length - 1 });
+    spheres.push(new Sphere([0, -1000, 0], 1000, materials.length - 1));
 
     materials.push(Material.createDielectric({ ior: 1.5 }, 0.0));
-    spheres.push({ center: [0, 1, 0], radius: 1.0, mat: materials.length - 1 });
+    spheres.push(new Sphere([0, 1, 0], 1.0, materials.length - 1));
 
     materials.push(Material.createLambertian({ albedo: [0.4, 0.2, 0.1] }, 0.0));
-    spheres.push({ center: [-4, 1, 0], radius: 1.0, mat: materials.length - 1 });
+    spheres.push(new Sphere([-4, 1, 0], 1.0, materials.length - 1));
 
     materials.push(Material.createMetal({ albedo: [0.7, 0.6, 0.5], fuzz: 0.0 }, 0.0));
-    spheres.push({ center: [4, 1, 0], radius: 1.0, mat: materials.length - 1 });
+    spheres.push(new Sphere([4, 1, 0], 1.0, materials.length - 1));
 
     super(
       'output-5',
@@ -225,7 +226,7 @@ export class FinalScene extends Scene {
 
   initWorld(): Promise<HittableList> {
     return Promise.resolve(
-      HittableList.fromGeometry(this.spheres, [], new Background(true, [0, 0, 0])),
+      HittableList.fromGeometry(this.spheres, [], [], new Background(true, [0, 0, 0])),
     );
   }
 }
@@ -255,6 +256,7 @@ export class SimpleMesh extends Scene {
     return HittableList.fromGeometry(
       [],
       [new Mesh(...readObj(torus), 0)],
+      [],
       new Background(true, [0, 0, 0]),
     );
   }
@@ -286,15 +288,13 @@ export class MeshShowcase extends Scene {
 
   initWorld(): Promise<HittableList> {
     return HittableList.fromGeometry(
-      [
-        { center: [-1.7, 1.0, -2.0], radius: 0.5, mat: 2 },
-        { center: [1.7, 1.0, -2.0], radius: 0.5, mat: 4 },
-      ],
+      [new Sphere([-1.7, 1.0, -2.0], 0.5, 2), new Sphere([1.7, 1.0, -2.0], 0.5, 4)],
       [
         new Mesh(...readObj(monkey), 0),
         new Mesh(...readObj(torus), 3),
         new Mesh(...readObj(plane), 1),
       ],
+      [],
       new Background(true, [0, 0, 0]),
     );
   }
@@ -329,6 +329,7 @@ export class BvhTest extends Scene {
       //   new Bvh({ min: [-3, -3, -3], max: [3, 3, 3] }, -1, -1, -1, 0),
       //   new Bvh({ min: [-3, -3, -3], max: [3, 3, 3] }, -1, -1, -1, 1),
       // ],
+      [],
       new Background(true, [0, 0, 0]),
     );
   }
@@ -361,12 +362,13 @@ export class EmissionTest extends Scene {
   initWorld(): Promise<HittableList> {
     return HittableList.fromGeometry(
       [
-        { center: [0.0, 0.0, -1.0], radius: 0.5, mat: 5 },
-        { center: [-1.0, 0.0, -1.0], radius: 0.5, mat: 0 },
-        { center: [1.0, 0.0, -1.0], radius: 0.5, mat: 3 },
-        { center: [0.0, 1.0, -2.0], radius: 1.0, mat: 2 },
+        new Sphere([0.0, 0.0, -1.0], 0.5, 5),
+        new Sphere([-1.0, 0.0, -1.0], 0.5, 0),
+        new Sphere([1.0, 0.0, -1.0], 0.5, 3),
+        new Sphere([0.0, 1.0, -2.0], 1.0, 2),
       ],
       [new Mesh(...readObj(plane2), 0)],
+      [],
       new Background(true, [0, 0, 0]),
     );
   }
@@ -402,10 +404,10 @@ export class CornellBox extends Scene {
   initWorld(): Promise<HittableList> {
     return HittableList.fromGeometry(
       [
-        { center: [-3.0, -3.0, -3.0], radius: 1.25, mat: 3 },
-        { center: [-3.0, -3.0, 0.0], radius: 1.25, mat: 5 },
-        { center: [-3.0, -3.0, 3.0], radius: 1.25, mat: 7 },
-        // { center: [-1.0, 0, 0], radius: 0.25, mat: 3 },
+        new Sphere([-3.0, -3.0, -3.0], 1.25, 3),
+        new Sphere([-3.0, -3.0, 0.0], 1.25, 5),
+        new Sphere([-3.0, -3.0, 3.0], 1.25, 7),
+        // new Sphere([-1.0, 0, 0], 0.25, 3 },
       ],
       [
         new Mesh(...readObj(boxWhite), 0),
@@ -413,6 +415,7 @@ export class CornellBox extends Scene {
         new Mesh(...readObj(boxGreen), 2),
         new Mesh(...readObj(boxLight), 4),
       ],
+      [],
       new Background(false, [0, 0, 0]),
     );
   }

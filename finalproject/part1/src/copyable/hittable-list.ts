@@ -1,10 +1,26 @@
-import { vec2, vec3, vec4 } from 'gl-matrix';
-import { start } from 'repl';
+import { vec3, vec4 } from 'gl-matrix';
 
-export interface Sphere {
+export interface Boundable {
+  getAabb(): Aabb;
+}
+
+export class Sphere implements Boundable {
   center: vec3;
   radius: number;
   mat: number;
+
+  constructor(center: vec3, radius: number, mat: number) {
+    this.center = center;
+    this.radius = radius;
+    this.mat = mat;
+  }
+
+  getAabb(): Aabb {
+    let rvec: vec3 = [this.radius, this.radius, this.radius];
+    let min: vec3 = [0, 0, 0];
+    let max: vec3 = [0, 0, 0];
+    return new Aabb(vec3.sub(min, this.center, rvec), vec3.add(max, this.center, rvec));
+  }
 }
 
 export interface Vertex {
@@ -21,7 +37,7 @@ export interface Vertex {
   // v: number;
 }
 
-export class Mesh {
+export class Mesh implements Boundable {
   vertices: Vertex[];
   vertices_length: number;
   indices: vec4[];
@@ -39,30 +55,11 @@ export class Mesh {
     this.indices_length = this.indices.length;
     this.mat = mat;
   }
-}
 
-export class Aabb {
-  min: vec3;
-  max: vec3;
-
-  constructor(min: vec3, max: vec3) {
-    this.min = min;
-    this.max = max;
-  }
-
-  // Bounding Volume requirement
-
-  static fromSphere(s: Sphere): Aabb {
-    let rvec: vec3 = [s.radius, s.radius, s.radius];
-    let min: vec3 = [0, 0, 0];
-    let max: vec3 = [0, 0, 0];
-    return new Aabb(vec3.sub(min, s.center, rvec), vec3.add(max, s.center, rvec));
-  }
-
-  static fromMesh(m: Mesh): Aabb {
-    let xs: number[] = m.vertices.map(v => v.px);
-    let ys: number[] = m.vertices.map(v => v.py);
-    let zs: number[] = m.vertices.map(v => v.pz);
+  getAabb(): Aabb {
+    let xs: number[] = this.vertices.map(v => v.px);
+    let ys: number[] = this.vertices.map(v => v.py);
+    let zs: number[] = this.vertices.map(v => v.pz);
 
     let minimums: number[] = [];
     let maximums: number[] = [];
@@ -84,6 +81,51 @@ export class Aabb {
       [maximums[0], maximums[1], maximums[2]],
     );
   }
+}
+
+export interface Volume {
+  sphere_index: number;
+  mesh_index: number;
+}
+
+export class VolumeEncapsulation implements Boundable {
+  underlyingSphere?: Sphere;
+  underlyingMesh?: Mesh;
+
+  private constructor(s: Sphere | null, m: Mesh | null) {
+    if (s != null) {
+      this.underlyingSphere = s;
+    }
+    if (m != null) {
+      this.underlyingMesh = m;
+    }
+  }
+
+  static fromSphere(s: Sphere) {
+    return new VolumeEncapsulation(s, null);
+  }
+
+  static fromMesh(m: Mesh) {
+    return new VolumeEncapsulation(null, m);
+  }
+
+  getAabb(): Aabb {
+    return (
+      this.underlyingSphere?.getAabb() ||
+      this.underlyingMesh?.getAabb() ||
+      new Aabb([0, 0, 0], [0, 0, 0])
+    );
+  }
+}
+
+export class Aabb {
+  min: vec3;
+  max: vec3;
+
+  constructor(min: vec3, max: vec3) {
+    this.min = min;
+    this.max = max;
+  }
 
   static fromAabbs(box0: Aabb, box1: Aabb): Aabb {
     return new Aabb(
@@ -104,6 +146,7 @@ export class Aabb {
 enum AabbType {
   SPHERE,
   MESH,
+  VOLUME,
 }
 
 interface AabbEncapsulation {
@@ -117,6 +160,7 @@ export class Bvh {
   right_index: number;
   sphere_index: number;
   mesh_index: number;
+  volume_index: number;
 
   constructor(
     box: Aabb,
@@ -124,12 +168,14 @@ export class Bvh {
     right_index: number,
     sphere_index: number,
     mesh_index: number,
+    volume_index: number,
   ) {
     this.box = box;
     this.left_index = left_index;
     this.right_index = right_index;
     this.sphere_index = sphere_index;
     this.mesh_index = mesh_index;
+    this.volume_index = volume_index;
   }
 }
 
@@ -145,37 +191,86 @@ export class Background {
 
 export class HittableList {
   spheres: Sphere[];
+  spheres_length: number;
   meshes: Mesh[];
+  meshes_length: number;
+  volumes: Volume[];
   bvhs: Bvh[];
   bg: Background;
 
-  constructor(spheres: Sphere[], meshes: Mesh[], bvhs: Bvh[], bg: Background) {
+  private constructor(
+    spheres: Sphere[],
+    spheres_length: number,
+    meshes: Mesh[],
+    meshes_length: number,
+    volumes: Volume[],
+    bvhs: Bvh[],
+    bg: Background,
+  ) {
     this.spheres = spheres;
+    this.spheres_length = spheres_length;
     this.meshes = meshes;
+    this.meshes_length = meshes_length;
+    this.volumes = volumes;
     this.bvhs = bvhs;
     this.bg = bg;
   }
 
-  static async fromGeometry(spheres: Sphere[], meshes: Mesh[], bg: Background) {
+  static async fromGeometry(
+    spheres: Sphere[],
+    meshes: Mesh[],
+    volumeEncapsulations: VolumeEncapsulation[],
+    bg: Background,
+  ) {
+    let spheresAndVolumes: Sphere[] = Array.from(spheres);
+    let meshesAndVolumes: Mesh[] = Array.from(meshes);
+
+    let volumes: Volume[] = volumeEncapsulations.map(v => {
+      if (v.underlyingSphere) {
+        spheresAndVolumes.push(v.underlyingSphere);
+        return { sphere_index: spheresAndVolumes.length - 1, mesh_index: -1 };
+      }
+      if (v.underlyingMesh) {
+        meshesAndVolumes.push(v.underlyingMesh);
+        return { sphere_index: -1, mesh_index: meshesAndVolumes.length - 1 };
+      }
+      throw new Error('Missing underlying type for volume');
+    });
+
     const addIndex = <T>(values: T[]): [number, T][] => values.map((v, i) => [i, v]);
     const mappedSpheres = spheres.map(s => {
       let potato: AabbEncapsulation = {
-        box: Aabb.fromSphere(s),
+        box: s.getAabb(),
         type: AabbType.SPHERE,
       };
       return potato;
     });
     const mappedMeshes = meshes.map(m => {
       let potato: AabbEncapsulation = {
-        box: Aabb.fromMesh(m),
+        box: m.getAabb(),
         type: AabbType.MESH,
       };
       return potato;
     });
+    const mappedVolumes = volumeEncapsulations.map(v => {
+      let potato: AabbEncapsulation = {
+        box: v.getAabb(),
+        type: AabbType.VOLUME,
+      };
+      return potato;
+    });
+
     return new HittableList(
-      spheres,
-      meshes,
-      await HittableList.buildBvh([...addIndex(mappedSpheres), ...addIndex(mappedMeshes)]),
+      spheresAndVolumes,
+      spheres.length,
+      meshesAndVolumes,
+      meshes.length,
+      volumes,
+      await HittableList.buildBvh([
+        ...addIndex(mappedSpheres),
+        ...addIndex(mappedMeshes),
+        ...addIndex(mappedVolumes),
+      ]),
       bg,
     );
   }
@@ -190,12 +285,13 @@ export class HittableList {
       let [i, bb] = bbs[0];
       switch (bb.type) {
         case AabbType.MESH:
-          return [new Bvh(bb.box, -1, -1, -1, i)];
+          return [new Bvh(bb.box, -1, -1, -1, i, -1)];
         case AabbType.SPHERE:
-          return [new Bvh(bb.box, -1, -1, i, -1)];
+          return [new Bvh(bb.box, -1, -1, i, -1, -1)];
+        case AabbType.VOLUME:
+          return [new Bvh(bb.box, -1, -1, -1, -1, i)];
         default:
-          // Unreachable
-          break;
+          throw new Error('Invalid AABB type');
       }
     } else {
       const sorted: [number, AabbEncapsulation][] = Array.from(bbs).sort(([_, s0], [__, s1]) => {
@@ -229,6 +325,7 @@ export class HittableList {
               b.right_index > 0 ? b.right_index + 1 : -1,
               b.sphere_index,
               b.mesh_index,
+              b.volume_index,
             ),
         );
         let right = rightUnfixed.map(
@@ -239,16 +336,15 @@ export class HittableList {
               b.right_index > 0 ? b.right_index + left.length + 1 : -1,
               b.sphere_index,
               b.mesh_index,
+              b.volume_index,
             ),
         );
         return [
-          new Bvh(Aabb.fromAabbs(left[0].box, right[0].box), 1, left.length + 1, -1, -1),
+          new Bvh(Aabb.fromAabbs(left[0].box, right[0].box), 1, left.length + 1, -1, -1, -1),
           ...left,
           ...right,
         ];
       });
     }
-    // Unreachable
-    return Promise.resolve([]);
   }
 }
