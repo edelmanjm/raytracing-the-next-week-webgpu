@@ -63,7 +63,8 @@ export default class Renderer {
   height: number;
   numGroups: number;
 
-  raytracingConfig: RaytracingConfig = {
+  // Only updated by the user
+  raytracingSettings: RaytracingConfig = {
     // Antialiasing Requirement
     samples_per_pixel: 5,
     max_depth: 5,
@@ -71,6 +72,8 @@ export default class Renderer {
     weight: 0,
     use_bvhs: 0,
   };
+  // Updated by the animation loop
+  raytracingCurrent: RaytracingConfig = this.raytracingSettings;
   infiniteSamples: boolean = false;
   // @ts-ignore
   scene: Scene;
@@ -183,7 +186,7 @@ export default class Renderer {
     {
       const configView = makeStructuredView(defs.uniforms.config);
 
-      configView.set(this.raytracingConfig);
+      configView.set(this.raytracingCurrent);
 
       this.raytracingConfigBuffer = this.device.createBuffer({
         size: configView.arrayBuffer.byteLength,
@@ -274,14 +277,14 @@ export default class Renderer {
       update();
     });
 
-    let samplesBinding = this.pane.addBinding(this.raytracingConfig, 'samples_per_pixel', {
+    let samplesBinding = this.pane.addBinding(this.raytracingSettings, 'samples_per_pixel', {
       label: 'Samples Per Pixel',
       min: 1,
       max: 1000,
       step: 1,
     });
     samplesBinding.on('change', ev => {
-      this.raytracingConfig.samples_per_pixel = ev.value;
+      this.raytracingSettings.samples_per_pixel = ev.value;
       update();
     });
 
@@ -297,14 +300,14 @@ export default class Renderer {
       update();
     });
 
-    let depthBinding = this.pane.addBinding(this.raytracingConfig, 'max_depth', {
+    let depthBinding = this.pane.addBinding(this.raytracingSettings, 'max_depth', {
       label: 'Max Ray Depth',
       min: 1,
       max: 25,
       step: 1,
     });
     depthBinding.on('change', ev => {
-      this.raytracingConfig.max_depth = ev.value;
+      this.raytracingSettings.max_depth = ev.value;
       update();
     });
 
@@ -312,7 +315,7 @@ export default class Renderer {
       label: 'Use BVHs',
     });
     useBvhsBinding.on('change', ev => {
-      this.raytracingConfig.use_bvhs = ev.value ? 1 : 0;
+      this.raytracingSettings.use_bvhs = ev.value ? 1 : 0;
       update();
     });
 
@@ -455,7 +458,7 @@ export default class Renderer {
       if (this.infiniteSamples) {
         this.frameSamplesPerPixel.left = Number.MAX_VALUE;
       } else {
-        this.frameSamplesPerPixel.left = this.raytracingConfig.samples_per_pixel;
+        this.frameSamplesPerPixel.left = this.raytracingSettings.samples_per_pixel;
       }
       this.frameSamplesPerPixel.done = 0;
       this.dirty = false;
@@ -473,12 +476,12 @@ export default class Renderer {
       let weight = currSamplesPerPixel / (this.frameSamplesPerPixel.done + currSamplesPerPixel);
       // console.log(`currSamplesPerPixel: ${currSamplesPerPixel}, weight: ${weight}`)
 
-      this.raytracingConfig = {
-        max_depth: this.raytracingConfig.max_depth,
+      this.raytracingCurrent = {
+        max_depth: this.raytracingSettings.max_depth,
         samples_per_pixel: currSamplesPerPixel,
         rand_seed: vec4.fromValues(Math.random(), Math.random(), Math.random(), Math.random()),
         weight: weight,
-        use_bvhs: this.raytracingConfig.use_bvhs,
+        use_bvhs: this.raytracingSettings.use_bvhs,
       };
 
       await this.updatePipeline(this.scene, true);
