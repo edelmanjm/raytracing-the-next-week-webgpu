@@ -6,7 +6,10 @@ import {
   FourSphere,
   FourSphereCameraPosition,
   MeshShowcase,
-  BvhTest,
+  CornellBox,
+  SimpleMesh,
+  VolumeTest,
+  CornellBoxWithVolumes,
 } from './scenes.js';
 import { RaytracingConfig } from './copyable/raytracing-config.js';
 import { ListBladeApi, Pane } from 'tweakpane';
@@ -60,7 +63,8 @@ export default class Renderer {
   height: number;
   numGroups: number;
 
-  raytracingConfig: RaytracingConfig = {
+  // Only updated by the user
+  raytracingSettings: RaytracingConfig = {
     // Antialiasing Requirement
     samples_per_pixel: 5,
     max_depth: 5,
@@ -68,6 +72,8 @@ export default class Renderer {
     weight: 0,
     use_bvhs: 0,
   };
+  // Updated by the animation loop
+  raytracingCurrent: RaytracingConfig = this.raytracingSettings;
   infiniteSamples: boolean = false;
   // @ts-ignore
   scene: Scene;
@@ -94,17 +100,21 @@ export default class Renderer {
     await this.onResize();
   }
 
-  updatePipeline(scene: Scene, configOnly: boolean) {
+  async updatePipeline(scene: Scene, configOnly: boolean) {
     const materials = scene.materials;
+    const world = await scene.getWorld();
 
     const code: string = getShader(
       this.wgSize,
       this.width,
       this.height,
       materials.length,
-      scene.world.spheres.length,
-      scene.world.meshes.length,
-      scene.world.bvhs.length,
+      world.spheres.length,
+      world.meshes.length,
+      world.meshes.map(m => m.vertices.length).reduce((sum, current) => sum + current, 0),
+      world.meshes.map(m => m.indices.length).reduce((sum, current) => sum + current, 0),
+      world.volumes.length,
+      world.bvhs.length,
     );
     const defs = makeShaderDataDefinitions(code);
 
@@ -127,7 +137,7 @@ export default class Renderer {
       {
         const worldView = makeStructuredView(defs.storages.world);
 
-        worldView.set(scene.world);
+        worldView.set(await scene.getWorld());
 
         this.worldBuffer = this.device.createBuffer({
           size: worldView.arrayBuffer.byteLength,
@@ -168,13 +178,15 @@ export default class Renderer {
         }
         this.statsBuffer.unmap();
       }
+
+      this.frameSamplesPerPixel.max = this.scene.samplesPerFrame;
     }
 
     // Raytracing config buffer
     {
       const configView = makeStructuredView(defs.uniforms.config);
 
-      configView.set(this.raytracingConfig);
+      configView.set(this.raytracingCurrent);
 
       this.raytracingConfigBuffer = this.device.createBuffer({
         size: configView.arrayBuffer.byteLength,
@@ -208,9 +220,9 @@ export default class Renderer {
     });
   }
 
-  initializeTweakPane() {
-    let update = () => {
-      this.updatePipeline(this.scene, false);
+  async initializeTweakPane() {
+    let update = async () => {
+      await this.updatePipeline(this.scene, false);
       this.dirty = true;
     };
 
@@ -226,8 +238,25 @@ export default class Renderer {
     });
 
     const finalScene = new FinalScene();
+    const simpleMesh = new SimpleMesh();
     const meshShowcase = new MeshShowcase();
-    this.scene = new BvhTest();
+    const cornellBox = new CornellBox();
+    const cornellBoxVolumes = new CornellBoxWithVolumes();
+
+    // Cache the hittable lists ahead of time
+    await Promise.all([
+      fourSphereOptions.map(v => {
+        return v.value.getWorld();
+      }),
+      finalScene.getWorld(),
+      simpleMesh.getWorld(),
+      meshShowcase.getWorld(),
+      cornellBox.getWorld(),
+      cornellBoxVolumes.getWorld(),
+    ]);
+
+    this.scene = fourSphereOptions[0].value;
+    await this.scene.getWorld();
 
     // View Requirement
     let sceneBlade = this.pane.addBlade({
@@ -235,8 +264,11 @@ export default class Renderer {
       label: 'Scene',
       options: [
         ...fourSphereOptions,
-        { text: FinalScene.description, value: finalScene },
-        { text: MeshShowcase.description, value: meshShowcase },
+        { text: finalScene.description, value: finalScene },
+        { text: simpleMesh.description, value: simpleMesh },
+        { text: meshShowcase.description, value: meshShowcase },
+        { text: cornellBox.description, value: cornellBox },
+        { text: cornellBoxVolumes.description, value: cornellBoxVolumes },
       ],
       value: this.scene,
     }) as ListBladeApi<Scene>;
@@ -245,14 +277,14 @@ export default class Renderer {
       update();
     });
 
-    let samplesBinding = this.pane.addBinding(this.raytracingConfig, 'samples_per_pixel', {
+    let samplesBinding = this.pane.addBinding(this.raytracingSettings, 'samples_per_pixel', {
       label: 'Samples Per Pixel',
       min: 1,
-      max: 250,
+      max: 1000,
       step: 1,
     });
     samplesBinding.on('change', ev => {
-      this.raytracingConfig.samples_per_pixel = ev.value;
+      this.raytracingSettings.samples_per_pixel = ev.value;
       update();
     });
 
@@ -268,14 +300,14 @@ export default class Renderer {
       update();
     });
 
-    let depthBinding = this.pane.addBinding(this.raytracingConfig, 'max_depth', {
+    let depthBinding = this.pane.addBinding(this.raytracingSettings, 'max_depth', {
       label: 'Max Ray Depth',
       min: 1,
-      max: 100,
+      max: 25,
       step: 1,
     });
     depthBinding.on('change', ev => {
-      this.raytracingConfig.max_depth = ev.value;
+      this.raytracingSettings.max_depth = ev.value;
       update();
     });
 
@@ -283,13 +315,19 @@ export default class Renderer {
       label: 'Use BVHs',
     });
     useBvhsBinding.on('change', ev => {
-      this.raytracingConfig.use_bvhs = ev.value ? 1 : 0;
+      this.raytracingSettings.use_bvhs = ev.value ? 1 : 0;
       update();
     });
 
     let stats = this.pane.addFolder({
       title: 'Statistics',
       expanded: true,
+    });
+
+    stats.addBinding(this.frameSamplesPerPixel, 'max', {
+      label: 'Max samples per frame',
+      readonly: true,
+      format: v => v.toFixed(0),
     });
 
     stats.addBinding(this.stats, 'frametime', {
@@ -352,7 +390,7 @@ export default class Renderer {
 
     // Stats read buffer
     {
-      const code: string = getShader(this.wgSize, this.width, this.height, 0, 0, 0, 0);
+      const code: string = getShader(this.wgSize, this.width, this.height, 0, 0, 0, 0, 0, 0, 0);
       const defs = makeShaderDataDefinitions(code);
 
       const statsView = makeStructuredView(defs.storages.compute_stats);
@@ -362,8 +400,8 @@ export default class Renderer {
       });
     }
 
-    this.initializeTweakPane();
-    this.updatePipeline(this.scene, false);
+    await this.initializeTweakPane();
+    await this.updatePipeline(this.scene, false);
   }
 
   async onResize(): Promise<void> {
@@ -397,8 +435,11 @@ export default class Renderer {
     return rgbBuffer;
   }
 
+  // TODO ideally light values shouldn't be dependent on the max number of
+  //  samples per frame, but since we're clamped to a Uint8 at the moment for
+  //  each pixel, I'm not sure what the alternative is.
   frameSamplesPerPixel = {
-    max: 1, // Max per frame (constant)
+    max: 10, // Max per frame (constant)
     left: 0, // How many are left to process this frame
     done: 0, // How many processed so far
   };
@@ -417,7 +458,7 @@ export default class Renderer {
       if (this.infiniteSamples) {
         this.frameSamplesPerPixel.left = Number.MAX_VALUE;
       } else {
-        this.frameSamplesPerPixel.left = this.raytracingConfig.samples_per_pixel;
+        this.frameSamplesPerPixel.left = this.raytracingSettings.samples_per_pixel;
       }
       this.frameSamplesPerPixel.done = 0;
       this.dirty = false;
@@ -435,15 +476,15 @@ export default class Renderer {
       let weight = currSamplesPerPixel / (this.frameSamplesPerPixel.done + currSamplesPerPixel);
       // console.log(`currSamplesPerPixel: ${currSamplesPerPixel}, weight: ${weight}`)
 
-      this.raytracingConfig = {
-        max_depth: this.raytracingConfig.max_depth,
+      this.raytracingCurrent = {
+        max_depth: this.raytracingSettings.max_depth,
         samples_per_pixel: currSamplesPerPixel,
         rand_seed: vec4.fromValues(Math.random(), Math.random(), Math.random(), Math.random()),
         weight: weight,
-        use_bvhs: this.raytracingConfig.use_bvhs,
+        use_bvhs: this.raytracingSettings.use_bvhs,
       };
 
-      this.updatePipeline(this.scene, true);
+      await this.updatePipeline(this.scene, true);
 
       const pass = encoder.beginComputePass();
       pass.setPipeline(this.pipeline);

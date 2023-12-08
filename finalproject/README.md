@@ -1,20 +1,24 @@
 *TODO*: Please edit the following information in your final project
 
-## Edit this line: Put your link to your youtube video here (see deliverables).
-
-## Edit this line: Put a few screenshots of your project here (see deliverables).
+## [Link to my video](https://youtu.be/q7dAR1EzN04)
 
 
-* Name: 
-  * Team member 1: *edit this*
-* How many hours did it take you to complete this final project? 
+## Screenshots
+
+![](part1/media/cornell-box.png)
+![](part1/media/cornell-box-volumes.png)
+![](part1/media/output-5.png)
+
+* Name: Jonathan Edelman
+* How many hours did it take you to complete this final project?
+  * Approximately 45, though this is fairly rough since lots of this was optimizations that occurred between assignments 5 and the final.
 * Did you collaborate or share ideas with any other students/TAs/Professors?
-* Did you use any external resources? 
-  * Note it is fair to utilize some tutorials--cite them here. You **must** add your own personal touch however!
-  * *edit this*
-  * *edit this*
-  * *edit this*
-  * (Optional) What was the most interesting part of the Final Assignment? How could the instructor improve the final project?
+  * No.
+* Did you use any external resources?
+  * Shirley's Ray Tracing: The Next Week served as the primary reference
+  * I talked with some people on the WebGPU Matrix server regarding optimization and debugging of aspects of my compute shader.
+* (Optional) What was the most interesting part of the Final Assignment? How could the instructor improve the final project?
+  * Tweaking the performance to make it work reasonably well. No suggestions on improvements.
 
 ### Rubric
 
