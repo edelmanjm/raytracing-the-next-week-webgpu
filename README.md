@@ -39,6 +39,6 @@ Please note that both the WebGPU spec and its various implementations (namely Da
 
 - As with most shader languages, WGSL does not support recursion or inheritance. As such, materials are differentiated with a manual struct field, with different geometry types accessed by index in their respective `hit()` functions.
 - Random number generation is handled by TypeScript and passed to WebGPU, as WGSL contains no facilities for RNG.
-- I've opted not to support quadrilaterals, instead adding support for arbitrary triangle meshes
+- I've opted not to support quadrilaterals, instead adding support for arbitrary triangle meshes.
 - There is currently no support for .MTL files or textures. This may change in the future.
 - There is no support for animations. I don't plan to add this.
