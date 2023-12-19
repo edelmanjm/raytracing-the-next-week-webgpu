@@ -1,4 +1,6 @@
-# Ray Tracing: The Next Week in WebGPU
+# [Ray Tracing: The Next Week in WebGPU](https://webgpu-raytracing.netlify.app)
+
+**[Hosted version (please use Google Chrome)](https://webgpu-raytracing.netlify.app)**
 
 This is a WebGPU and TypeScript-based raytracer, inspired by (and largely following) Peter Shirley's _[Ray Tracing in One Weekend](https://raytracing.github.io/books/RayTracingInOneWeekend.html)_ and _[Ray Tracing: The Next Week](https://raytracing.github.io/books/RayTracingTheNextWeek.html)_, v4.0.0-alpha.1. Features include:
 
@@ -23,7 +25,7 @@ Many thanks to the people who've helped me throughout this project:
 
 ## Building and developing
 
-If you'd like to build this locally rather than using the hosted version for development purposes, please use the following instructions:
+If you'd like to build this locally for development purposes rather than using [the hosted version](https://webgpu-raytracing.netlify.app), please use the following instructions:
 
 1. Update your GPU drivers. For Windows users, DDU + fresh install is recommended, but probably not required.
 2. **Download the latest stable version of Google Chrome.** Chrome 113 (May 10, 2023) is *required*, and Chrome 117 or newer is *highly recommended.* Chrome Canary (nightly) can also be more stable on some systems. WebGPU support in other browsers (even other Chromium distributions) is generally poor, and not recommended.
