@@ -1,44 +1,42 @@
-*TODO*: Please edit the following information in your final project
+# Ray Tracing: The Next Week in WebGPU
 
-## [Link to my video](https://youtu.be/q7dAR1EzN04)
+This is a WebGPU and TypeScript-based raytracer, inspired by (and largely following) Peter Shirley's _[Ray Tracing in One Weekend](https://raytracing.github.io/books/RayTracingInOneWeekend.html)_ and _[Ray Tracing: The Next Week](https://raytracing.github.io/books/RayTracingTheNextWeek.html)_, v4.0.0-alpha.1. Features include:
 
+- A compute-shader based raytracer
+- Multiple material types, including diffuse, metal, dielectric (glass), emissive, and volumetrics
+- Support for spheres and OBJ (Wavefront) meshes
+- Automatic AABB-based BVH calculations and traversal
+- Tunable sampling and ray depth, with frametime and ray statistics
+- A positionable camera with depth-of-field effects
+- Multiple scenes demonstrating these features
+- A download function for your favorite frames ❤️
 
-## Screenshots
+![](./media/cornell-box.png)
 
-![](part1/media/cornell-box.png)
-![](part1/media/cornell-box-volumes.png)
-![](part1/media/output-5.png)
+Many thanks to the people who've helped me throughout this project:
+- Professor Mike Shah, for their lectures and debugging help
+- [amaiorano's implementation](https://github.com/amaiorano/raytracing-in-one-weekend-webgpu) of the _Ray Tracing in One Weekend in WebGPU_ v3.2.3, which served as a useful guide for setting up my WebGPU environment (though I opted not to use it for my core features) 
+- greggman, in particular for providing and assisting with [webgpu-utils](https://github.com/greggman/webgpu-utils)
+- [webgpufundamentals.org](https://webgpufundamentals.org/)
+- Brandon Jones's [toji.dev](https://toji.dev)
+- The people of the WebGPU Matrix server
 
-* Name: Jonathan Edelman
-* How many hours did it take you to complete this final project?
-  * Approximately 45, though this is fairly rough since lots of this was optimizations that occurred between assignments 5 and the final.
-* Did you collaborate or share ideas with any other students/TAs/Professors?
-  * No.
-* Did you use any external resources?
-  * Shirley's Ray Tracing: The Next Week served as the primary reference
-  * I talked with some people on the WebGPU Matrix server regarding optimization and debugging of aspects of my compute shader.
-* (Optional) What was the most interesting part of the Final Assignment? How could the instructor improve the final project?
-  * Tweaking the performance to make it work reasonably well. No suggestions on improvements.
+## Building and developing
 
-### Rubric
+If you'd like to build this locally rather than using the hosted version for development purposes, please use the following instructions:
 
-<table>
-  <tbody>
-    <tr>
-      <th>Points</th>
-      <th align="center">Description</th>
-    </tr>
-    <tr>
-      <td>(33.3%) Project Completion</td>
-     <td align="left"><ul><li>Does the project compile and run.</li><li>Is it polished without any bugs (No weird visual artifacts).</li><li>Did you make a video?</li><li>Did you add a screenshot of your project to the repository?</li></ul></td>
-    </tr>
-    <tr>
-      <td>(33.3%) Technical</td>
-      <td align="left"><ul><li>Was the implementation of the project challenging?</li><li>Even if you followed a tutoral, it should not be trivial, and have some personal touch to it.</li><li>Did you have to organize/process a sufficient amount of data?</li><li>Was it clear you consulted some outside resources that go above and beyond the scope of this class</li></ul></td>
-    </tr>
-    <tr>
-      <td>(33.4%) Creativity</td>
-      <td align="left"><ul><li>How visually appealing is the scene?<ul><li>Note: There should be some 'wow' factor--instructors discretion is used here.</li></ul></li><li>How original is the project<ul><li>Again, did you enhance a tutorial and do something unique or just go by the book?</li></ul></li></ul></td>
-    </tr>
-  </tbody>
-</table>
+1. Update your GPU drivers. For Windows users, DDU + fresh install is recommended, but probably not required.
+2. **Download the latest stable version of Google Chrome.** Chrome 113 (May 10, 2023) is *required*, and Chrome 117 or newer is *highly recommended.* Chrome Canary (nightly) can also be more stable on some systems. WebGPU support in other browsers (even other Chromium distributions) is generally poor, and not recommended.
+3. Ensure you have Node.js 20 installed.
+4. In the root directory, run `npm install && npm start`.
+5. In Chrome, navigate to http://localhost:1234/. You should see a rendered scene.
+
+Please note that both the WebGPU spec and its various implementations (namely Dawn) are still in active development; you may experience bugs or performance issues.
+
+## Design
+
+- As with most shader languages, WGSL does not support recursion or inheritance. As such, materials are differentiated with a manual struct field, with different geometry types accessed by index in their respective `hit()` functions.
+- Random number generation is handled by TypeScript and passed to WebGPU, as WGSL contains no facilities for RNG.
+- I've opted not to support quadrilaterals, instead adding support for arbitrary triangle meshes
+- There is currently no support for .MTL files or textures. This may change in the future.
+- There is no support for animations. I don't plan to add this.
